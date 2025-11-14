@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "macebot",
+	"version": "${version}",
+	"name": "MaceBot",
+	"description": "This is a PvP practice mod made specially for MacePvP. This is still In development. But it doesn't mean you can't try it",
+	"authors": [
+		"katch0420"
+	],
+	"contact": {
+		"homepage": "",
+		"sources": ""
+	},
+	"license": "MIT",
+	"icon": "assets/macebot/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+          "net.katch0420.macebot.MaceBot"
+		],
+		"fabric-datagen": [
+          "net.katch0420.macebot.MaceBotDataGenerator"
+		],
+        "client": [
+          "net.katch0420.macebot.MaceBotClient"
+        ]
+	},
+	"mixins": [
+		"macebot.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.17.3",
+		"minecraft": "~1.21",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
