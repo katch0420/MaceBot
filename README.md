@@ -54,7 +54,11 @@ Currently All the controls of the mod were available in Command Form. Here the c
     * `settings`
       * `auto-refill`
         * Toggles inventory refill of player. There is an issue that this wont allow you to drop and move items and this prevents items from breaking such as armor.
-
+        
+### Incompatibility 
+- Carpet Mod
+- Carpet PvP
+  
 ### Conclusion
 We appreciate your time reading this. This is the first mod we making, It may have bugs and incompatibility with some mods. Please be kind enough to let us know.
 Thank you!.
