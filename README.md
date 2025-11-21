@@ -65,7 +65,7 @@ Thank you!.
 
 ### Info.
 Currently Our bot can't do anything rather than launching up using windcharge and hitting player when player is in reach.
-And Its hits were like a HT1 kill aura user. 100% accuracy. So I recommend that you practice with an Idle Bot.
+And 100% accuracy in hits. So I recommend that you practice with an Idle Bot.
 
 Features Marked with "[!]" Won't be available in current latest release or won't work as it mentioned. They will be added in future releases.
  
