@@ -36,5 +36,8 @@
 	},
 	"suggests": {
 		"another-mod": "*"
-	}
+	},
+    "breaks": {
+        "carpet": "*"
+    }
 }
