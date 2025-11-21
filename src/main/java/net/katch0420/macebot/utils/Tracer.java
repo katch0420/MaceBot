@@ -1,4 +1,4 @@
-package net.katch0420.macebot.playerbot.utils;
+package net.katch0420.macebot.utils;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.util.hit.BlockHitResult;
@@ -6,11 +6,9 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.BlockStateRaycastContext;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
-import javax.sound.sampled.Clip;
 import java.util.Optional;
 import java.util.function.Predicate;
 

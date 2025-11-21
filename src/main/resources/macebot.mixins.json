@@ -1,14 +1,15 @@
 {
-	"required": true,
-	"package": "net.katch0420.macebot.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"mixins": [
-		"PlayerEntity_playerBotMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
+  "required": true,
+  "package": "net.katch0420.macebot.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ItemStackMixin",
+    "PlayerEntity_playerBotMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
 	}
 }

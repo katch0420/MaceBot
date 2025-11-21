@@ -1,8 +1,10 @@
 package net.katch0420.macebot.playerbot;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.katch0420.macebot.MaceBot;
+import net.katch0420.macebot.player.Kits;
 import net.minecraft.block.BlockState;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
@@ -34,7 +36,6 @@ import java.util.*;
 public class PlayerBot extends ServerPlayerEntity {
     ///player bot main vars
     public static ServerPlayerEntity player;
-    public static ServerPlayerEntity commandSrc;
     public static MinecraftServer minecraftServer;
     public static final Logger LOGGER = MaceBot.LOGGER;
     public Runnable fixStartingPos = () -> {};
@@ -48,11 +49,10 @@ public class PlayerBot extends ServerPlayerEntity {
             SyncedClientOptions clientOptions = SyncedClientOptions.createDefault();
             ConnectedClientData clientData = new ConnectedClientData(gameProfile, 0, clientOptions, false);
             PlayerBot playerBot = new PlayerBot(server, world, gameProfile, clientOptions);
-            player = playerBot;
-            inventory = playerBot.getInventory();
             playerBot.fixStartingPos = () -> playerBot.move(MovementType.PLAYER, new Vec3d(blockPos.getX(), blockPos.getY(), blockPos.getZ()));
             server.getPlayerManager().onPlayerConnect(clientConnection, playerBot, clientData);
             playerBot.teleport(world, blockPos.getX(), blockPos.getY(), blockPos.getZ(), 0, 0);
+
             playerBot.setInvulnerable(false);
             playerBot.setHealth(20.0F);
             playerBot.unsetRemoved();
@@ -62,11 +62,12 @@ public class PlayerBot extends ServerPlayerEntity {
             playerBot.getHungerManager().setFoodLevel(20);
             playerBot.getServerWorld().getChunkManager().updatePosition(playerBot);
             playerBot.networkHandler = new PlayerBotNetHandler(server, clientConnection, playerBot, clientData);
+            player = playerBot;
+            inventory = player.getInventory();
             minecraftServer = server;
-            commandSrc = source.getPlayer();
             logged = true;
+            Kits.giveKit(Objects.requireNonNull(player.getServer()).getCommandSource(), Kits.Kit.MACE_NETHERITE, false,"MaceBot");
             BotAI.loadActionSequences();
-            BotAI.refillInventory("full", "netherite", "MaceBot");
         } else{
             source.sendFeedback(()-> Text.literal("Bot Already Spawned!").withColor(16733525),false);
         }
@@ -86,10 +87,6 @@ public class PlayerBot extends ServerPlayerEntity {
     }
 
     @Override
-    protected void dropLoot(DamageSource damageSource, boolean causedByPlayer) {
-    }
-
-    @Override
     public void onDeath(DamageSource damageSource) {
         super.onDeath(damageSource);
         this.dead = false;
@@ -97,30 +94,14 @@ public class PlayerBot extends ServerPlayerEntity {
     }
 
     @Override
-    public void onDamaged(DamageSource damageSource) {
-        super.onDamaged(damageSource);
-    }
-
-    @Override
     protected void fall(double heightDifference, boolean onGround, BlockState state, BlockPos landedPosition) {
         super.handleFall(0.0,heightDifference,0.0,onGround);
-    }
-
-    @Override
-    public void kill() {
-    }
-
-    @Override
-    public void onDisconnect() {
-        logged = false;
-        super.onDisconnect();
     }
 
     public static class BotAI{
         public static Entity targetedEntity;
         public static HitResult target;
-        public static ServerPlayerEntity currentPlayerTarget;
-        public static ServerPlayerEntity user;
+        public static ServerPlayerEntity nearbyPlayer;
 
         private static boolean nextGroundType;
         private static float forwardSpeed = 0.0f;
@@ -141,15 +122,11 @@ public class PlayerBot extends ServerPlayerEntity {
         private static final int foodSlot = 7;
         private static final int axeSlot = 8;
 
-        public static Difficulty difficulty = Difficulty.TIER_5;
-        private static CurrentAction currentAction = CurrentAction.NONE;
+        public static Tier difficulty = Tier.TIER_5;
         private static ActionSequence active = ActionSequence.NONE;
 
-        public static boolean refillInvofuser = false;
-        public static boolean currentMaterialofPlayerisDia = false;
 
         public static boolean elytra = false;
-        public static boolean refreshInv = true;
         public static boolean currentMaterialisDia = true;
         public static boolean idle = true;
         public static boolean attributeSwap = true;
@@ -157,25 +134,12 @@ public class PlayerBot extends ServerPlayerEntity {
 
         private static final Map<Integer, Runnable> reg_mace_atk = new HashMap<>();
 
-        public enum Difficulty{
+        public enum Tier {
             TIER_5,
             TIER_4,
             TIER_3,
             TIER_2,
             TIER_1
-        }
-        public enum CurrentAction{
-            NONE,
-            DENSITY_ATTACK,//A 40
-            DENSITY_SWAP,//A 20
-            BREECH_ATTACK,//A 10
-            BREECH_SWAP,//B 30
-            SWORD_ATTACK, //G 50
-            AXE_ATTACK, //B C 20
-            STUN_SLAM, // A C 30
-            ELYTRA_MACE_ATTACK, // A C 40
-            EATING,// B C
-            SHIELD //B C
         }
         public enum Actions {
             USE_WIND_CHARGE
@@ -257,6 +221,14 @@ public class PlayerBot extends ServerPlayerEntity {
                     player.setSprinting(true);
                 }
             },
+            UN_SPRINT{
+                @Override
+                public void execute() {
+                    if(player.isSprinting()){
+                        player.setSprinting(false);
+                    }
+                }
+            },
             SNEAK
             {
                 @Override
@@ -265,6 +237,14 @@ public class PlayerBot extends ServerPlayerEntity {
                         player.setSprinting(false);
                     }
                     player.setSneaking(true);
+                }
+            },
+            UN_SNEAK{
+                @Override
+                public void execute() {
+                    if(player.isSneaking()){
+                        player.setSneaking(false);
+                    }
                 }
             },
             WAIT
@@ -320,73 +300,36 @@ public class PlayerBot extends ServerPlayerEntity {
                     }
                 }
                 case MACE_HIT -> {
-                    if(currentPlayerTarget != null) {
-                        lookAt(currentPlayerTarget.getCameraPosVec(1));
+                    if(nearbyPlayer != null) {
+                        lookAt(nearbyPlayer.getCameraPosVec(1));
                         doAction(Actions.ATTACK);
                     }
                 }
             }
         }
-        public static void refillInventory(String refillType, String materialType, String name){
-            currentMaterialisDia = !materialType.equals("netherite");
-            if(refillType.equals("refill")) {
-                commandExecute("item replace entity "+name+" container.1 with minecraft:ender_pearl 16");
-                commandExecute("item replace entity "+name+" container.6 with minecraft:wind_charge 64");
-                commandExecute("item replace entity "+name+" container.7 with minecraft:golden_apple 64");
-                if(user != null && refillInvofuser){
-                    user.setStackInHand(Hand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
-                }
-            } else if (refillType.equals("full")){
-                commandExecute("item replace entity "+name+" container.0 with minecraft:"+materialType+"_sword[minecraft:unbreakable={},minecraft:enchantments={sharpness:5,sweeping_edge:3}]");
-                commandExecute("item replace entity "+name+" container.1 with minecraft:ender_pearl 16");
-                commandExecute("item replace entity "+name+" container.2 with minecraft:shield[minecraft:unbreakable={}]");
-                commandExecute("item replace entity "+name+" container.3 with minecraft:mace[minecraft:unbreakable={},minecraft:enchantments={breach:4}]");
-                commandExecute("item replace entity "+name+" container.4 with minecraft:mace[minecraft:unbreakable={},minecraft:enchantments={density:5,wind_burst:1}]");
-                commandExecute("item replace entity "+name+" container.5 with minecraft:elytra[minecraft:unbreakable={}]");
-                commandExecute("item replace entity "+name+" container.6 with minecraft:wind_charge 64");
-                commandExecute("item replace entity "+name+" container.7 with minecraft:golden_apple 64");
-                commandExecute("item replace entity "+name+" container.8 with minecraft:"+materialType+"_axe[minecraft:unbreakable={},minecraft:enchantments={sharpness:5}]");
-                commandExecute("item replace entity "+name+" armor.head with minecraft:"+materialType+"_helmet[minecraft:unbreakable={},minecraft:enchantments={protection:4}]");
-                commandExecute("item replace entity "+name+" armor.chest with minecraft:"+materialType+"_chestplate[minecraft:unbreakable={},minecraft:enchantments={protection:4}]");
-                commandExecute("item replace entity "+name+" armor.legs with minecraft:"+materialType+"_leggings[minecraft:unbreakable={},minecraft:enchantments={protection:4}]");
-                commandExecute("item replace entity "+name+" armor.feet with minecraft:"+materialType+"_boots[minecraft:unbreakable={},minecraft:enchantments={protection:4,feather_falling:4}]");
-                player.setStackInHand(Hand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
-                if(user != null){
-                    user.setStackInHand(Hand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
-                }
-            }
-        }
-        public static void commandExecute(String input){
-            try {
-                Objects.requireNonNull(player.getServer()).getCommandManager().getDispatcher().execute(input, player.getServer().getCommandSource().withSilent());
-            } catch (CommandSyntaxException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        private static void getRandomAttackType(boolean groundType){
-            double val = Math.random();
-            if(groundType){
-                if(val < 0.2){
-                    currentAction = CurrentAction.AXE_ATTACK; //20%
-                } else if (val < 0.5){
-                    currentAction = CurrentAction.BREECH_SWAP; //30%
-                } else {
-                    currentAction = CurrentAction.SWORD_ATTACK; //50%
-                }
-            }
-        }
-
-        private static boolean randomizeActionType(){
-            return Math.random() <= 0.3;
-        }
-
         public static void update(){
+            if(PlayerBotSettings.autoRefill){
+                Kits.refillItems(player);
+            }
+            updateSpeeds();
             updateCooldown();
-            player.setStackInHand(Hand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
-            currentPlayerTarget = getNearbyPlayer();
-            checkMaceHitMissed();
-            updateActionStep();
+            updateAIParameters();
+        }
+        private static void updateCooldown(){
+            windchargeCoolDown--;
+            attackCoolDown--;
+        }
+        private static void updateAIParameters(){
+            nearbyPlayer = getNearbyPlayer();
+            if(active == ActionSequence.MACE_HIT && player.isOnGround()){
+                active = ActionSequence.NONE;
+            }
+            if(active != ActionSequence.NONE && active != ActionSequence.MACE_HIT){
+                actionStep++;
+            }
             updateTarget();
+        }
+        private static void updateSpeeds(){
             float vel;
             if(!player.isOnGround()){
                 vel = 0.3f;
@@ -395,34 +338,8 @@ public class PlayerBot extends ServerPlayerEntity {
             }
             player.forwardSpeed = forwardSpeed * vel;
             player.sidewaysSpeed = sidewaysSpeed * vel;
-            if(refreshInv) {
-                refillInventory("refill", currentMaterialisDia?"diamond":"netherite", "MaceBot");
-            }
-            if(refillInvofuser && user != null){
-                refillInventory("refill", currentMaterialofPlayerisDia?"diamond":"netherite",user.getName().getString());
-            }
         }
-        private static void updateCooldown(){
-            windchargeCoolDown--;
-            attackCoolDown--;
-        }
-        private static void checkMaceHitMissed(){
-            if(active == ActionSequence.MACE_HIT && player.isOnGround()){
-                active = ActionSequence.NONE;
-            }
-        }
-        private static void updateActionStep(){
-            if(active != ActionSequence.NONE && active != ActionSequence.MACE_HIT){
-                actionStep++;
-            }
-        }
-        private static void setForwardSpeed(float v){
-            forwardSpeed = v;
-        }
-        private static void setSidewaysSpeed(float v){
-            sidewaysSpeed = v;
-        }
-        private  static ServerPlayerEntity getNearbyPlayer(){
+        private static ServerPlayerEntity getNearbyPlayer(){
             List<ServerPlayerEntity> a = player.getServerWorld().getPlayers();
             ServerPlayerEntity b = null;
             float c = 100;
@@ -501,19 +418,11 @@ public class PlayerBot extends ServerPlayerEntity {
         }
         public static void loadActionSequences(){
             //reg_mace_atk
-            reg_mace_atk.put(1, ()-> {forwardSpeed = 0;look(Direction.DOWN);});
+            reg_mace_atk.put(1, ()-> {forwardSpeed = 0;look(Direction.DOWN);doAction(Actions.UN_SPRINT);});
             reg_mace_atk.put(2, ()-> doAction(Actions.WAIT));
             reg_mace_atk.put(3, ()-> doAction(Actions.WAIT));
             reg_mace_atk.put(4, ()-> {doAction(Actions.USE_WIND_CHARGE);doAction(Actions.LAUNCH_JUMP);});
-            reg_mace_atk.put(5, ()-> {inventory.selectedSlot = 4;forwardSpeed = 1;});
-        }
-        public static void ctrlInvMgmt(ServerCommandSource source, boolean dia, boolean refill, boolean bl){
-            user = source.getPlayer();
-            currentMaterialofPlayerisDia = dia;
-            refillInvofuser = refill;
-            if(user != null && bl) {
-                refillInventory("full", currentMaterialofPlayerisDia ? "diamond" : "netherite", user.getName().getString());
-            }
+            reg_mace_atk.put(5, ()-> {inventory.selectedSlot = 4;forwardSpeed = 1;doAction(Actions.SPRINT);});
         }
     }
 }

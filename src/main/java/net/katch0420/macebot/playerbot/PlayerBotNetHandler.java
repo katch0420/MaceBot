@@ -28,7 +28,7 @@ public class PlayerBotNetHandler extends ServerPlayNetworkHandler {
         super.disconnect(reason);
         if (reason.getContent() instanceof TranslatableTextContent text && (text.getKey().equals("multiplayer.disconnect.idling") || text.getKey().equals("multiplayer.disconnect.duplicate_login")))
         {
-            ((PlayerBot) player).kill();
+            player.kill();
         }
     }
 
