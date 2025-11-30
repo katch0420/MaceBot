@@ -28,15 +28,12 @@ public class PlayerBotNetHandler extends ServerPlayNetworkHandler {
         super.disconnect(reason);
         if (reason.getContent() instanceof TranslatableTextContent text && (text.getKey().equals("multiplayer.disconnect.idling") || text.getKey().equals("multiplayer.disconnect.duplicate_login")))
         {
-            player.kill();
+            player.kill(player.getServerWorld());
         }
     }
 
     @Override
-    public void requestTeleport(double x, double y, double z, float yaw, float pitch, Set<PositionFlag> flags) {
-        super.requestTeleport(x, y, z, yaw, pitch, flags);
-        if(null != Objects.requireNonNull(player.getServer()).getPlayerManager().getPlayer(player.getUuid())){
-
-        }
+    public void requestTeleport(double x, double y, double z, float yaw, float pitch) {
+        super.requestTeleport(x, y, z, yaw, pitch);
     }
 }

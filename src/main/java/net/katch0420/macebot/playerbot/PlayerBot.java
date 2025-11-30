@@ -1,27 +1,25 @@
 package net.katch0420.macebot.playerbot;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.brigadier.arguments.BoolArgumentType;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.katch0420.macebot.MaceBot;
 import net.katch0420.macebot.player.Kits;
-import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.SkullBlockEntity;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MovementType;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.network.NetworkSide;
 import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
+import net.minecraft.network.packet.s2c.play.EntityPositionSyncS2CPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ConnectedClientData;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
@@ -32,58 +30,71 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class PlayerBot extends ServerPlayerEntity {
-    ///player bot main vars
+
+    public Runnable fixStartingPos = () -> {
+    };
+
     public static ServerPlayerEntity player;
     public static MinecraftServer minecraftServer;
     public static final Logger LOGGER = MaceBot.LOGGER;
-    public Runnable fixStartingPos = () -> {};
     public static PlayerInventory inventory;
-    public static boolean logged;
+    public static boolean botOnline;
 
-    public static void createBot(MinecraftServer server, ServerWorld world, BlockPos blockPos, ServerCommandSource source){
-        if(!logged) {
-            GameProfile gameProfile = new GameProfile(UUID.fromString("bf6e5d99-812f-4d93-8172-7cb97db14567"), "MaceBot");
-            PlayerBotConnection clientConnection = new PlayerBotConnection(NetworkSide.SERVERBOUND);
+    public static void createBot(MinecraftServer server, ServerWorld world, BlockPos blockPos, ServerCommandSource source) {
+
+        GameProfile gameProfile = server.getUserCache().findByName("MaceBot").orElse(new GameProfile(UUID.randomUUID(), "MaceBott"));
+        String name = gameProfile.getName();
+
+        fetchGP(name).whenCompleteAsync((p, t) -> {
+            if (t != null) {
+                return;
+            }
+
             SyncedClientOptions clientOptions = SyncedClientOptions.createDefault();
-            ConnectedClientData clientData = new ConnectedClientData(gameProfile, 0, clientOptions, false);
+
             PlayerBot playerBot = new PlayerBot(server, world, gameProfile, clientOptions);
             playerBot.fixStartingPos = () -> playerBot.move(MovementType.PLAYER, new Vec3d(blockPos.getX(), blockPos.getY(), blockPos.getZ()));
-            server.getPlayerManager().onPlayerConnect(clientConnection, playerBot, clientData);
-            playerBot.teleport(world, blockPos.getX(), blockPos.getY(), blockPos.getZ(), 0, 0);
+            server.getPlayerManager().onPlayerConnect(new PlayerBotConnection(NetworkSide.SERVERBOUND), playerBot, new ConnectedClientData(gameProfile, 0, clientOptions, false));
+            playerBot.teleport(world, blockPos.getX(), blockPos.getY(), blockPos.getZ(), Set.of(), 0.0f, 0.0f, true);
 
-            playerBot.setInvulnerable(false);
             playerBot.setHealth(20.0F);
             playerBot.unsetRemoved();
+            playerBot.getAttributes().getCustomInstance(EntityAttributes.STEP_HEIGHT).setBaseValue(0.6f);
             playerBot.changeGameMode(GameMode.SURVIVAL);
-            playerBot.getAbilities().flying = false;
-            playerBot.getAbilities().allowFlying = false;
-            playerBot.getHungerManager().setFoodLevel(20);
+            server.getPlayerManager().sendToAll(new EntityPositionSyncS2CPacket(playerBot.getId(), new PlayerPosition(playerBot.getPos(), playerBot.getMovement(), playerBot.getYaw(), playerBot.getPitch()), playerBot.isOnGround()));
             playerBot.getServerWorld().getChunkManager().updatePosition(playerBot);
-            playerBot.networkHandler = new PlayerBotNetHandler(server, clientConnection, playerBot, clientData);
+            playerBot.dataTracker.set(PLAYER_MODEL_PARTS, (byte) 0x7f);
+            playerBot.getAbilities().flying = false;
             player = playerBot;
+            botOnline = true;
             inventory = player.getInventory();
-            minecraftServer = server;
-            logged = true;
-            Kits.giveKit(Objects.requireNonNull(player.getServer()).getCommandSource(), Kits.Kit.MACE_NETHERITE, false,"MaceBot");
+            Kits.giveKit(Objects.requireNonNull(player.getServer()).getCommandSource(), Kits.Kit.MACE_NETHERITE, false, "MaceBot");
             BotAI.loadActionSequences();
-        } else{
-            source.sendFeedback(()-> Text.literal("Bot Already Spawned!").withColor(16733525),false);
-        }
+        }, server);
     }
+
+    private static CompletableFuture<Optional<GameProfile>> fetchGP(final String name) {
+        return SkullBlockEntity.fetchProfileByName(name);
+    }
+
     public PlayerBot(MinecraftServer server, ServerWorld world, GameProfile profile, SyncedClientOptions clientOptions) {
         super(server, world, profile, clientOptions);
     }
+
     @Override
-    public void tick()
-    {
-        this.resetPosition();
-        this.getServerWorld().getChunkManager().updatePosition(this);
+    public void tick() {
+        if (this.getServer().getTicks() % 10 == 0) {
+            this.resetPosition();
+        }
         BotAI.update();
         BotAI.AI();
         super.tick();
         this.playerTick();
+        this.fall(player.getY() - player.prevY, player.isOnGround(),player.getBlockStateAtPos(),player.getBlockPos());
+
     }
 
     @Override
@@ -94,8 +105,8 @@ public class PlayerBot extends ServerPlayerEntity {
     }
 
     @Override
-    protected void fall(double heightDifference, boolean onGround, BlockState state, BlockPos landedPosition) {
-        super.handleFall(0.0,heightDifference,0.0,onGround);
+    public String getIp() {
+        return "127.0.0.1";
     }
 
     public static class BotAI{
@@ -143,84 +154,84 @@ public class PlayerBot extends ServerPlayerEntity {
         }
         public enum Actions {
             USE_WIND_CHARGE
-            {
-                @Override
-                public void execute(){
-                    if(windchargeCoolDown <= 0) {
-                        changeSlot(windChargeSlot);
-                        doAction(Actions.USE);
-                        windchargeCoolDown = 10;
-                    }
-                }
-            },
-            EAT
-            {
-                @Override
-                public void execute(){
-                    changeSlot(foodSlot);
-                    doAction(Actions.USE);
-                }
-            },
-            USE_SHIELD
-            {
-                @Override
-                public void execute(){
-                    changeSlot(shieldSlot);
-                    doAction(USE);
-                }
-            },
-            JUMP
-            {
-                @Override
-                public void execute(){
-                    if(player.isOnGround()){
-                        player.jump();
-                    }
-                }
-            },
-            ATTACK
-            {
-                @Override
-                public void execute(){
-                    if(targetedEntity != null && attackCoolDown <= 0){
-                        player.attack(targetedEntity);
-                        player.swingHand(Hand.MAIN_HAND);
-                        attackCoolDown = 3;
-                    }
-                }
-            },
-            USE
-            {
-                @Override
-                public void execute(){
-                    player.getStackInHand(Hand.MAIN_HAND).use(player.getWorld(),player,Hand.MAIN_HAND);
-                }
-            },
-            LAUNCH_JUMP
-            {
-                @Override
-                public void execute(){
-                        new Thread(() -> {
-                            try {
-                                Thread.sleep(20);
-                                doAction(JUMP);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
+                    {
+                        @Override
+                        public void execute(){
+                            if(windchargeCoolDown <= 0) {
+                                changeSlot(windChargeSlot);
+                                doAction(Actions.USE);
+                                windchargeCoolDown = 10;
                             }
-                        }).start();
+                        }
+                    },
+            EAT
+                    {
+                        @Override
+                        public void execute(){
+                            changeSlot(foodSlot);
+                            doAction(Actions.USE);
+                        }
+                    },
+            USE_SHIELD
+                    {
+                        @Override
+                        public void execute(){
+                            changeSlot(shieldSlot);
+                            doAction(USE);
+                        }
+                    },
+            JUMP
+                    {
+                        @Override
+                        public void execute(){
+                            if(player.isOnGround()){
+                                player.jump();
+                            }
+                        }
+                    },
+            ATTACK
+                    {
+                        @Override
+                        public void execute(){
+                            if(targetedEntity != null && attackCoolDown <= 0){
+                                player.attack(targetedEntity);
+                                player.swingHand(Hand.MAIN_HAND);
+                                attackCoolDown = 3;
+                            }
+                        }
+                    },
+            USE
+                    {
+                        @Override
+                        public void execute(){
+                            player.getStackInHand(Hand.MAIN_HAND).use(player.getWorld(),player,Hand.MAIN_HAND);
+                        }
+                    },
+            LAUNCH_JUMP
+                    {
+                        @Override
+                        public void execute(){
+                            new Thread(() -> {
+                                try {
+                                    Thread.sleep(20);
+                                    doAction(JUMP);
+                                } catch (InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }).start();
 
-                }
-            },
+                        }
+                    },
             SPRINT
-            {
-                @Override
-                public void execute(){
-                    if(player.isSneaking()){
-                        player.setSneaking(false);
-                    }
-                    player.setSprinting(true);
-                }
-            },
+                    {
+                        @Override
+                        public void execute(){
+                            if(player.isSneaking()){
+                                player.setSneaking(false);
+                            }
+                            player.setSprinting(true);
+                        }
+                    },
             UN_SPRINT{
                 @Override
                 public void execute() {
@@ -230,15 +241,15 @@ public class PlayerBot extends ServerPlayerEntity {
                 }
             },
             SNEAK
-            {
-                @Override
-                public void execute(){
-                    if(player.isSprinting()){
-                        player.setSprinting(false);
-                    }
-                    player.setSneaking(true);
-                }
-            },
+                    {
+                        @Override
+                        public void execute(){
+                            if(player.isSprinting()){
+                                player.setSprinting(false);
+                            }
+                            player.setSneaking(true);
+                        }
+                    },
             UN_SNEAK{
                 @Override
                 public void execute() {
@@ -302,6 +313,8 @@ public class PlayerBot extends ServerPlayerEntity {
                 case MACE_HIT -> {
                     if(nearbyPlayer != null) {
                         lookAt(nearbyPlayer.getCameraPosVec(1));
+                    }
+                    if(player.fallDistance > 1){
                         doAction(Actions.ATTACK);
                     }
                 }
@@ -357,7 +370,7 @@ public class PlayerBot extends ServerPlayerEntity {
             actions.execute();
         }
         public static void changeSlot(int slot){
-            inventory.selectedSlot = slot;
+            inventory.setSelectedSlot(slot);
         }
         public static void look(float yaw, float pitch){
             player.setYaw(yaw % 360); //setYaw
@@ -422,7 +435,8 @@ public class PlayerBot extends ServerPlayerEntity {
             reg_mace_atk.put(2, ()-> doAction(Actions.WAIT));
             reg_mace_atk.put(3, ()-> doAction(Actions.WAIT));
             reg_mace_atk.put(4, ()-> {doAction(Actions.USE_WIND_CHARGE);doAction(Actions.LAUNCH_JUMP);});
-            reg_mace_atk.put(5, ()-> {inventory.selectedSlot = 4;forwardSpeed = 1;doAction(Actions.SPRINT);});
+            reg_mace_atk.put(5, ()-> {inventory.setSelectedSlot(4);forwardSpeed = 1;doAction(Actions.SPRINT);});
         }
     }
 }
+

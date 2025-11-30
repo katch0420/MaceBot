@@ -24,7 +24,7 @@ public class MaceBotCommands {
                                                         .executes(
                                                                 context -> {
                                                                     PlayerBot.createBot(context.getSource().getServer(), Objects.requireNonNull(context.getSource().getPlayer()).getServerWorld(), context.getSource().getPlayer().getBlockPos(), context.getSource());
-                                                                    Messenger.add("Spawned macebot",Colors.BaseColor);
+                                                                    Messenger.add("Spawning macebot",Colors.BaseColor);
                                                                     Messenger.send(context.getSource().getPlayer(), true, true);
                                                                     return 1;
                                                                 }

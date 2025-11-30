@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "macebot",
-	"version": "1.1.0",
+	"version": "1.0.2",
 	"name": "MaceBot",
 	"description": "This is a PvP practice mod made specially for MacePvP. This is still In development. But it doesn't mean you can't try it",
 	"authors": [
@@ -30,7 +30,7 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.16.10",
-		"minecraft": ["1.21", "1.21.1"],
+		"minecraft": ">=1.21.4",
 		"java": ">=21",
 		"fabric-api": "*"
 	},
@@ -38,6 +38,7 @@
 		"another-mod": "*"
 	},
     "breaks": {
-        "carpet": "*"
+        "carpet": "*",
+        "carpet-pvp": "*"
     }
 }

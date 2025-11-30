@@ -14,7 +14,7 @@ public class MaceBot implements ModInitializer {
 	public void onInitialize() {
         ServerLifecycleEvents.SERVER_STOPPING.register(
                 minecraftServer -> {
-                    PlayerBot.logged = false;
+                    PlayerBot.botOnline = false;
         });
         LOGGER.info("[MaceBot] Initializing Mod:");
         MaceBotCommands.Register();
