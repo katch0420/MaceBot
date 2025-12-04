@@ -62,6 +62,11 @@ public class Kits {
                 selectedItems.put(39,new ItemData("armor.feet","diamond_boots","protection:4,feather_falling:4",1,true));
                 selectedItems.put(40,new ItemData("weapon.offhand","totem_of_undying","",1));
             }
+
+            @Override
+            public String displayName() {
+                return "Diamond Kit";
+            }
         },
         MACE_NETHERITE{
             @Override
@@ -109,7 +114,11 @@ public class Kits {
                 selectedItems.put(38,new ItemData("armor.legs","netherite_leggings","protection:4",1,true));
                 selectedItems.put(39,new ItemData("armor.feet","netherite_boots","protection:4,feather_falling:4",1,true));
                 selectedItems.put(40,new ItemData("weapon.offhand","totem_of_undying","",1));
+            }
 
+            @Override
+            public String displayName() {
+                return "Netherite Kit";
             }
         },
         REFILL{
@@ -121,8 +130,15 @@ public class Kits {
                 selectedItems.put(2,new ItemData("container.7","golden_apple","",64));
                 selectedItems.put(3,new ItemData("weapon.offhand","totem_of_undying","",1));
             }
+
+            @Override
+            public String displayName() {
+                return "Refill Kit";
+            }
         };
         abstract void execute();
+
+        public abstract String displayName();
     }
 
     public static void giveKit(ServerCommandSource source, Kit kit, boolean unbreakable,String name){
