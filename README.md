@@ -4,29 +4,28 @@ A Minecraft fabric mod that allows players to practice Mace PvP.
 
 ### How it works?
 
-MaceBot introduces an preprogrammed player bot to your Minecraft world that can autonomously navigate, fight, and manage inventory. The bot is specifically designed for mace combat scenarios and includes support for totems, elytra flight, and automatic equipment management. And the behaviou of the player bot is completly customizable.
+MaceBot introduces a preprogrammed player entity to your Minecraft world that can autonomously navigate, fight, and manage inventory. The bot is specifically designed for mace combat scenarios and includes support for totems, elytra flight, and automatic equipment management. And the behaviour of the player bot is completly customizable.
 
-### What makes it special?
-* You can customize alomost everything. For example
-  * You can change the bot's diffeculty from NPC to Tier 1. [!]
-  * You can make your own custom kits. [!]
-* No latency issues. (Unless you have a potato pc)
-* Offline availability. It can be used in a single player world and Servers.
-* Easy access using commands (planning to add custom gui).
-* Can practice almost all Mace PvP techniques. (not all but almost)
-* In Build arena maps. [!]
-* In Build Mace PvP kits
-* AI like bot behaviour. [!]
+### What can the bot do?
+* Can do mace attacks
+* Can do elytra mace attacks
+* Can do crit attacks
+* Can heal itself when low
 
-### How to use this?
-Steps For starters.
-* First load a world with the mod
-* Then spawn the bot using commands given below.
-* And get yourself a kit from the commands.
-* Then start practicing with our bot
-* If you want it to attack back. Resume the bot using commands. Currently bot will hit with 100% accuracy so its impossible to practice with that. If you want try it yourself. I recommend enabling autorefill for bot.
+### What can you do?
+* Customize MaceBot's behaviour
+* Get yourself a fresh MacePvP kit in single command
+* Sharpen your aim and Mace PvP skills
 
-Currently All the controls of the mod were available in Command Form. Here the command tree.
+### How to use the mod?
+* As usual load the mod from your mod folder.
+* go Into a world (Flat world Recommended)
+* Spawn the bot
+* The resume the bot
+
+(Note) In the Latest version bot don't have any difficulty customization. So Its Hard to fight with the bot. Becuz its not a human who can make mistakes.
+
+### MaceBot Command tree:
 * `/macebot`
   * `bot`
     * `spawn`
@@ -42,9 +41,15 @@ Currently All the controls of the mod were available in Command Form. Here the c
         * Gives a diamond Mace HT kit to bot with unbreakable Tag. To get a kit with mending and unbreaking enchantments add `false` argument in end of command.
     * `settings`
       * `elytra`
-        * Toggles elytra Usage of Bot. [!]
+        * Toggles elytra Usage of Bot.
       * `auto-refill`
-        * Toggles inventory refill of Bot. This is recommended for current available release.
+        * Toggles inventory refill of Bot.
+      * `attack`
+        * Decides Whether the bot can hurt you or not. (Kinda forgot to add the login in current release will be added in future release. Sorry)
+      * `crits`
+        * Toggles Crit attacks.
+      * `ordinary-mace`
+        * Toggles Classic mace attacks.
   * `player`
     * `mace-kit`
       * `netherite [<boolean>]`
@@ -53,7 +58,7 @@ Currently All the controls of the mod were available in Command Form. Here the c
         * Gives a diamond Mace HT kit to player with unbreakable Tag. To get a kit with mending and unbreaking enchantments add `false` argument in end of command.
     * `settings`
       * `auto-refill`
-        * Toggles inventory refill of player. There is an issue that this wont allow you to drop and move items and this prevents items from breaking such as armor.
+        * Prevents Items from decreasing from your inventory when use. This has some wierd issues i will fix them in future updates.
         
 ### Incompatibility 
 - Carpet Mod
@@ -64,11 +69,4 @@ We appreciate your time reading this. This is the first mod we making, It may ha
 Thank you!.
 
 ### Info.
-Currently Our bot can't do anything rather than launching up using windcharge and hitting player when player is in reach.
-And 100% accuracy in hits. So I recommend that you practice with an Idle Bot.
-
-Features Marked with "[!]" Won't be available in current latest release or won't work as it mentioned. They will be added in future releases.
- 
-    
-
-  
+Above Infos Are related to the latest release (MaceBot 1.1). Check Changelogs for full info about feature history.
