@@ -3,6 +3,7 @@ package net.katch0420.macebot.player;
 public class PlayerSettings {
     public static boolean autoRefill = false;
     public static boolean buffs = false;
+    public static boolean elytra = true;
 
     public static boolean toggleAutoRefill(){
         autoRefill = !autoRefill;
