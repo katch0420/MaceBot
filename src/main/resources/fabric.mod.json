@@ -16,13 +16,16 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-          "net.katch0420.macebot.MaceBot"
+          "net.katch0420.macebot.main.MaceBot"
 		],
 		"fabric-datagen": [
           "net.katch0420.macebot.MaceBotDataGenerator"
 		],
         "client": [
-          "net.katch0420.macebot.MaceBotClient"
+          "net.katch0420.macebot.client.MaceBotClient"
+        ],
+        "server": [
+          "net.katch0420.macebot.server.MaceBotServer"
         ]
 	},
 	"mixins": [
@@ -30,7 +33,7 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.16.10",
-		"minecraft": ["1.21","1.21.1"],
+		"minecraft": ["1.21.2","1.21.3"],
 		"java": ">=21",
 		"fabric-api": "*"
 	},
