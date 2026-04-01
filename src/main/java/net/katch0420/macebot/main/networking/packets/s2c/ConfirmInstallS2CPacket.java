@@ -4,6 +4,8 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.*;
 import net.katch0420.macebot.main.MaceBot;
 import net.katch0420.macebot.main.messenger.ModMessages;
 import net.katch0420.macebot.main.networking.packets.c2s.RequestSettingsC2SPacket;
+import net.katch0420.macebot.main.settings.client.ClientSideSettings;
+import net.katch0420.macebot.main.settings.client.ClientSideSettingsSyncHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
@@ -37,6 +39,7 @@ public record ConfirmInstallS2CPacket(String version) implements CustomPayload {
             }
             MaceBot.LOGGER.info("Detected MaceBot in server environment.");
             MaceBot.LOGGER.info("Sending Setting Sync Request");
+            ClientSideSettings.setConnected(true);
             ClientPlayNetworking.send(new RequestSettingsC2SPacket());
         });
     }

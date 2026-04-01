@@ -12,6 +12,7 @@ import net.katch0420.macebot.main.kits.client.gui.handled.KitEditorScreen;
 import net.katch0420.macebot.main.kits.client.gui.handled.KitViewScreen;
 import net.katch0420.macebot.main.networking.MaceBotNetworking;
 import net.katch0420.macebot.main.networking.packets.c2s.ConfirmInstallC2SPacket;
+import net.katch0420.macebot.main.settings.client.ClientSideSettings;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
 import net.minecraft.text.Text;
@@ -25,15 +26,22 @@ public class MaceBotClient implements ClientModInitializer{
 
     @Override
     public void onInitializeClient() {
+
         ClientLifecycleEvents.CLIENT_STARTED.register(minecraftClient -> {
+            ClientSideSettings.setConnected(false);
             instance = minecraftClient;
         });
-
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (MaceBotKeyBinds.openOptionsGui.wasPressed()){
-                if(!(client.currentScreen instanceof ControlPanelScreen)){
-                    client.setScreen(new ControlPanelScreen(Text.literal("MaceBot")));
-                }
+        ClientPlayConnectionEvents.DISCONNECT.register(
+                (a,b)-> ClientSideSettings.setConnected(false)
+        );
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            if (ControlPanelScreen.justClosed) {
+                ControlPanelScreen.justClosed = false; // reset after one tick
+                return;
+            }
+            if(!ClientSideSettings.isConnected() && client.player != null) client.player.sendMessage(Text.of("§eServer does not have macebot Installed"),false);
+            while (MaceBotKeyBinds.openOptionsGui.wasPressed() && client.currentScreen == null) {
+                client.setScreen(new ControlPanelScreen(Text.literal("MaceBot")));
             }
         });
 

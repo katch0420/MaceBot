@@ -76,7 +76,7 @@ public class OptionScreen extends Screen {
             boolToggle(SettingsKey.MACEBOT_CAN_DO_TRACKING,     "Allow Tracking"),
             boolToggle(SettingsKey.MACEBOT_CAN_USE_ELYTRA,      "Allow Elytra"),
             boolToggle(SettingsKey.MACEBOT_CAN_DO_ATTACK,       "Allow Attacks"),
-            boolToggle(SettingsKey.MACEBOT_CAN_USE_SHIELD,      "Allow Shield"),
+            boolToggle(SettingsKey.MACEBOT_CAN_USE_SHIELD,      "Allow Shield §e[Experimental]"),
             boolToggle(SettingsKey.MACEBOT_CAN_DO_MACE_ATTACK,  "Allow Mace Attack"),
             boolToggle(SettingsKey.MACEBOT_CAN_DO_KB_HIT,       "Allow KnockBack Hits"),
             boolToggle(SettingsKey.MACEBOT_CAN_DO_CRIT_HIT,     "Allow Crit Hits"),

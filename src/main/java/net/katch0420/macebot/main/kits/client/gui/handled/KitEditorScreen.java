@@ -306,10 +306,6 @@ public class KitEditorScreen extends HandledScreen<KitEditorScreen.KitEditorScre
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == KeyBindingHelper.getBoundKeyOf(MaceBotKeyBinds.openOptionsGui).getCode()) {
-            close();
-        }
-        // Escape → close
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             close();
             return true;
@@ -328,6 +324,10 @@ public class KitEditorScreen extends HandledScreen<KitEditorScreen.KitEditorScre
 
         for (Element e : children()) {
             if (e.keyPressed(keyCode, scanCode, modifiers)) return true;
+        }
+
+        if (keyCode == KeyBindingHelper.getBoundKeyOf(MaceBotKeyBinds.openOptionsGui).getCode()) {
+            close();
         }
 
         return true; // swallow everything else

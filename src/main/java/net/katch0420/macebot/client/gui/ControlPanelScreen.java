@@ -102,7 +102,7 @@ public class ControlPanelScreen extends Screen {
                             .build()
             }
     };
-
+    public static boolean justClosed;
 
     public ControlPanelScreen(Text title) {
         super(title);
@@ -131,10 +131,13 @@ public class ControlPanelScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if(super.keyPressed(keyCode, scanCode, modifiers)) return true;
         if(keyCode == KeyBindingHelper.getBoundKeyOf(MaceBotKeyBinds.openOptionsGui).getCode()){
             close();
+            justClosed = true;
+            return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return false;
     }
 
     private void applyGridBounds(int scaledWidth, int scaledHeight) {
