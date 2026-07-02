@@ -3,6 +3,8 @@ package net.katch0420.macebot.main.macebot.bot;
 import net.katch0420.macebot.main.macebot.control.ItemClassifier;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracks the item in one hand of a BotPlayer.
@@ -10,6 +12,7 @@ import net.minecraft.util.Hand;
  */
 public class BotStack {
 
+    private static final Logger log = LoggerFactory.getLogger(BotStack.class);
     public final BotPlayer owner;
     public final Hand      hand;
 
@@ -41,7 +44,10 @@ public class BotStack {
         // On cooldown (offhand only)
         if (hand == Hand.OFF_HAND
                 && owner.serverPlayer.getItemCooldownManager()
-                .isCoolingDown(itemStack)) {
+                //? if >=1.21.2 {
+                /*.isCoolingDown(itemStack)) {
+                *///?} else
+                .isCoolingDown(itemStack.getItem())) {
             stackStatus = StackStatus.ON_COOLDOWN;
             return;
         }

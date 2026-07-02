@@ -2,7 +2,11 @@ package net.katch0420.macebot.main.settings.client;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.katch0420.macebot.client.MaceBotClient;
 import net.katch0420.macebot.main.macebot.control.Controller;
+import net.katch0420.macebot.main.macebot.control.Difficulty;
+import net.katch0420.macebot.main.messenger.ModMessages;
+import net.minecraft.client.network.ClientPlayerEntity;
 
 @Environment(EnvType.CLIENT)
 public class ClientSideSettings {
@@ -10,9 +14,9 @@ public class ClientSideSettings {
     public static boolean CONNECTED = false;
     //Status
     public static boolean MACEBOT_ONLINE = false;
-    public static boolean MACEBOT_PAUSED = true;
+    public static int MACEBOT_ID = -1;
     //MaceBot
-    public static Controller.Difficulty DIFFICULTY = Controller.Difficulty.PRO;
+    public static Difficulty DIFFICULTY = Difficulty.PRO;
     public static boolean MACEBOT_CAN_USE_ELYTRA = true;
     public static boolean MACEBOT_AUTO_REFILL_ENABLED = true;
     public static boolean MACEBOT_BUFFS_ENABLED = true;
@@ -24,13 +28,17 @@ public class ClientSideSettings {
     public static boolean MACEBOT_CAN_DO_TRACKING = true;
 
     //Player
+    public static int OPPONENT_ID = -1;
     public static boolean PLAYER_AUTO_REFILL_ENABLED = true;
     public static boolean PLAYER_BUFFS_ENABLED = true;
 
     //General
-    public static Controller.Mode MODE = Controller.Mode.FIGHT;
+    public static Controller.Mode MODE = Controller.Mode.NPC;
+    public static Controller.PracticeMode PRACTICE_MODE = Controller.PracticeMode.STUN_SLAM;
     public static boolean CHAT_MESSAGES_ENABLED = true;
     public static boolean ACTION_BAR_MESSAGES_ENABLED = true;
+    public static boolean OPS_ONLY = true;
+    public static boolean MOD_ENABLED = true;
 
     public static boolean isMacebotOnline() {
         return MACEBOT_ONLINE;
@@ -40,14 +48,13 @@ public class ClientSideSettings {
         MACEBOT_ONLINE = macebotOnline;
     }
 
-    public static boolean isMacebotPaused() {
-        return MACEBOT_PAUSED;
+    public static int getMacebotId() {
+        return MACEBOT_ID;
     }
 
-    public static void setMacebotPaused(boolean macebotPaused) {
-        MACEBOT_PAUSED = macebotPaused;
+    public static void setMacebotId(int macebotId) {
+        MACEBOT_ID = macebotId;
     }
-
     public static boolean isConnected() {
         return CONNECTED;
     }
@@ -64,11 +71,19 @@ public class ClientSideSettings {
         ClientSideSettings.MODE = MODE;
     }
 
-    public static Controller.Difficulty getDifficulty() {
+    public static Controller.PracticeMode getPracticeMode() {
+        return PRACTICE_MODE;
+    }
+
+    public static void setPracticeMode(Controller.PracticeMode practiceMode) {
+        PRACTICE_MODE = practiceMode;
+    }
+
+    public static Difficulty getDifficulty() {
         return DIFFICULTY;
     }
 
-    public static void setDifficulty(Controller.Difficulty DIFFICULTY) {
+    public static void setDifficulty(Difficulty DIFFICULTY) {
         ClientSideSettings.DIFFICULTY = DIFFICULTY;
     }
 
@@ -144,6 +159,14 @@ public class ClientSideSettings {
         MACEBOT_CAN_DO_TRACKING = macebotCanDoTracking;
     }
 
+    public static int getOpponentId() {
+        return OPPONENT_ID;
+    }
+
+    public static void setOpponentId(int opponentId) {
+        OPPONENT_ID = opponentId;
+    }
+
     public static boolean isPlayerAutoRefillEnabled() {
         return PLAYER_AUTO_REFILL_ENABLED;
     }
@@ -176,68 +199,26 @@ public class ClientSideSettings {
         ACTION_BAR_MESSAGES_ENABLED = actionBarMessagesEnabled;
     }
 
-    public static boolean toggleMacebotCanUseElytra() {
-        MACEBOT_CAN_USE_ELYTRA = !MACEBOT_CAN_USE_ELYTRA;
-        return MACEBOT_CAN_USE_ELYTRA;
+    public static boolean isOpsOnly() {
+        return OPS_ONLY;
     }
 
-    public static boolean toggleMacebotAutoRefillEnabled() {
-        MACEBOT_AUTO_REFILL_ENABLED = !MACEBOT_AUTO_REFILL_ENABLED;
-        return MACEBOT_AUTO_REFILL_ENABLED;
+    public static void setOpsOnly(boolean opsOnly) {
+        OPS_ONLY = opsOnly;
     }
 
-    public static boolean toggleMacebotBuffsEnabled() {
-        MACEBOT_BUFFS_ENABLED = !MACEBOT_BUFFS_ENABLED;
-        return MACEBOT_BUFFS_ENABLED;
+    public static boolean isModEnabled() {
+        return MOD_ENABLED;
     }
 
-    public static boolean toggleMacebotCanDoMaceAttack() {
-        MACEBOT_CAN_DO_MACE_ATTACK = !MACEBOT_CAN_DO_MACE_ATTACK;
-        return MACEBOT_CAN_DO_MACE_ATTACK;
+    public static void setModEnabled(boolean modEnabled) {
+        MOD_ENABLED = modEnabled;
     }
 
-    public static boolean toggleMacebotCanDoKbHit() {
-        MACEBOT_CAN_DO_KB_HIT = !MACEBOT_CAN_DO_KB_HIT;
-        return MACEBOT_CAN_DO_KB_HIT;
-    }
-
-    public static boolean toggleMacebotCanDoCritHit() {
-        MACEBOT_CAN_DO_CRIT_HIT = !MACEBOT_CAN_DO_CRIT_HIT;
-        return MACEBOT_CAN_DO_CRIT_HIT;
-    }
-
-    public static boolean toggleMacebotCanDoAttack() {
-        MACEBOT_CAN_DO_ATTACK = !MACEBOT_CAN_DO_ATTACK;
-        return MACEBOT_CAN_DO_ATTACK;
-    }
-
-    public static boolean toggleMacebotCanUseShield() {
-        MACEBOT_CAN_USE_SHIELD = !MACEBOT_CAN_USE_SHIELD;
-        return MACEBOT_CAN_USE_SHIELD;
-    }
-
-    public static boolean toggleMacebotCanDoTracking() {
-        MACEBOT_CAN_DO_TRACKING = !MACEBOT_CAN_DO_TRACKING;
-        return MACEBOT_CAN_DO_TRACKING;
-    }
-
-    public static boolean togglePlayerAutoRefillEnabled() {
-        PLAYER_AUTO_REFILL_ENABLED = !PLAYER_AUTO_REFILL_ENABLED;
-        return PLAYER_AUTO_REFILL_ENABLED;
-    }
-
-    public static boolean togglePlayerBuffsEnabled() {
-        PLAYER_BUFFS_ENABLED = !PLAYER_BUFFS_ENABLED;
-        return PLAYER_BUFFS_ENABLED;
-    }
-
-    public static boolean toggleChatMessagesEnabled() {
-        CHAT_MESSAGES_ENABLED = !CHAT_MESSAGES_ENABLED;
-        return CHAT_MESSAGES_ENABLED;
-    }
-
-    public static boolean toggleActionBarMessagesEnabled() {
-        ACTION_BAR_MESSAGES_ENABLED = !ACTION_BAR_MESSAGES_ENABLED;
-        return ACTION_BAR_MESSAGES_ENABLED;
+    public static boolean hasAccess() {
+        if (MaceBotClient.getClientPlayer().hasPermissionLevel(3) && ClientSideSettings.isOpsOnly()) return true;
+        else
+            MaceBotClient.getClientPlayer().sendMessage(ModMessages.WARNING.copy().append(ModMessages.CLIENT_WARN_RESTRICTED_ACTION));
+        return false;
     }
 }

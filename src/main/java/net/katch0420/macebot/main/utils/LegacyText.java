@@ -6,7 +6,7 @@ import net.minecraft.text.Style;
 import net.minecraft.util.Formatting;
 
 public class LegacyText {
-    public static Text parse(String input) {
+    public static MutableText parse(String input) {
         MutableText root = Text.empty();
         Style current = Style.EMPTY;
 
@@ -51,5 +51,14 @@ public class LegacyText {
         }
 
         return root;
+    }
+
+    public static String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase();
+    }
+
+    public static String getEnumValueAsString(String s) {
+        return capitalize(s).replace("_"," ");
     }
 }

@@ -24,12 +24,22 @@ public class PlayerBotNetHandler extends ServerPlayNetworkHandler {
         super.disconnect(reason);
         if (reason.getContent() instanceof TranslatableTextContent text && (text.getKey().equals("multiplayer.disconnect.idling") || text.getKey().equals("multiplayer.disconnect.duplicate_login")))
         {
-            player.kill(player.getServerWorld());
+            player.kill(
+                    //? if >=1.21.9
+                    /*player.getEntityWorld()*/
+                    //? if >=1.21.6 <=1.21.8
+                    /*player.getWorld()*/
+                    //? if >=1.21.2 <=1.21.5
+                    /*player.getServerWorld()*/
+            );
         }
     }
 
+    // NetHandlerPlayServerFake
+    // PlayerBotNetHandler.java
     @Override
     public void requestTeleport(double x, double y, double z, float yaw, float pitch) {
         super.requestTeleport(x, y, z, yaw, pitch);
+        syncWithPlayerPosition(); // equivalent of resetPosition() in your version
     }
 }

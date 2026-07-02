@@ -1,5 +1,6 @@
 package net.katch0420.macebot.main.networking.packets.c2s;
 
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.katch0420.macebot.main.MaceBot;
 import net.katch0420.macebot.main.macebot.bot.PlayerBot;
@@ -7,6 +8,7 @@ import net.katch0420.macebot.main.macebot.bot.PlayerBot;
 import net.katch0420.macebot.main.settings.main.SettingsKey;
 import net.katch0420.macebot.main.settings.server.Settings;
 import net.katch0420.macebot.main.settings.server.SettingsSyncHelper;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
@@ -44,14 +46,8 @@ public record ControlCommandC2SPacket(ControlCommands command) implements Custom
                     System.out.println(2);
                     PlayerBot.disconnect();
                 }
-                case MACEBOT_START -> {
-                    PlayerBot.controller.pauseTheBot(false);
-                    SettingsSyncHelper.broadcastCurrent(SettingsKey.MACEBOT_PAUSED, context.server());
-                }
-                case MACEBOT_PAUSE -> {
-                    PlayerBot.controller.pauseTheBot(true);
-                    SettingsSyncHelper.broadcastCurrent(SettingsKey.MACEBOT_PAUSED, context.server());
-                }
+                case MACEBOT_START -> PlayerBot.controller.startOrResume();
+                case MACEBOT_PAUSE -> PlayerBot.controller.pause();
             }
         });
     }
@@ -61,5 +57,11 @@ public record ControlCommandC2SPacket(ControlCommands command) implements Custom
         MACEBOT_DESPAWN,
         MACEBOT_START,
         MACEBOT_PAUSE
+    }
+
+    public static void send(ControlCommands cmd){
+        ClientPlayNetworking.send(
+                new ControlCommandC2SPacket(cmd)
+        );
     }
 }

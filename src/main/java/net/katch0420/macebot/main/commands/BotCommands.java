@@ -6,7 +6,6 @@ import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.katch0420.macebot.main.kits.server.KitGiver;
 import net.katch0420.macebot.main.kits.server.KitRegistry;
-import net.katch0420.macebot.main.macebot.control.Controller;
 import net.katch0420.macebot.main.macebot.bot.PlayerBot;
 import net.katch0420.macebot.main.settings.main.SettingsKey;
 import net.katch0420.macebot.main.settings.server.SettingsSyncHelper;
@@ -15,8 +14,6 @@ import net.katch0420.macebot.main.utils.Messenger;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-
-import java.util.Objects;
 
 public class BotCommands {
 
@@ -49,7 +46,7 @@ public class BotCommands {
             return 0;
         }
 
-        KitGiver.giveBuiltInKit(bot, KitRegistry.get(kitId), unbreakable);
+        KitGiver.giveKit(bot, KitRegistry.get(kitId), unbreakable);
         Messenger.add("Gave ", Colors.BaseColor);
         if (unbreakable) Messenger.add("unbreakable ", Colors.BaseColor);
         Messenger.add(kitId.replace("_", " "), Colors.BaseColor);
@@ -82,7 +79,7 @@ public class BotCommands {
 
                                         .then(CommandManager.literal("pause")
                                                 .executes(ctx -> {
-                                                    PlayerBot.controller.pauseTheBot();
+                                                    PlayerBot.controller.pause();
                                                     Messenger.add("Paused the bot", Colors.BaseColor);
                                                     Messenger.send(ctx.getSource().getPlayer(), true, true);
                                                     return 1;
@@ -90,11 +87,7 @@ public class BotCommands {
 
                                         .then(CommandManager.literal("play")
                                                 .executes(ctx -> {
-                                                    SettingsSyncHelper.applyAndBroadcast(
-                                                            SettingsKey.MODE,
-                                                            Controller.Mode.FIGHT,
-                                                            ctx.getSource().getServer()
-                                                    );
+                                                    PlayerBot.controller.startOrResume();
                                                     Messenger.add("Resumed the bot", Colors.BaseColor);
                                                     Messenger.send(ctx.getSource().getPlayer(), true, true);
                                                     return 1;

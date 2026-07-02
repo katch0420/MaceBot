@@ -1,38 +1,51 @@
 package net.katch0420.macebot.client.gui.widgets.builder;
 
 public class Builder<T extends Builder<T>> {
-    public int x = 0;
-    public int y = 0;
-    public int width = 20;
-    public int height = 20;
+    protected int x = 0;
+    protected int y = 0;
+    protected int width = 20;
+    protected int height = 20;
 
-    public T x(int x){
+    @SuppressWarnings("unchecked")
+    public T x(int x) {
         this.x = x;
         return (T) this;
     }
 
-    public T y(int y){
+    @SuppressWarnings("unchecked")
+    public T y(int y) {
         this.y = y;
         return (T) this;
     }
 
-    public T width(int width){
+    @SuppressWarnings("unchecked")
+    public T width(int width) {
         this.width = width;
         return (T) this;
     }
 
-    public T height(int height){
+    @SuppressWarnings("unchecked")
+    public T height(int height) {
         this.height = height;
         return (T) this;
     }
 
-    public T size(int width, int height){
+    @SuppressWarnings("unchecked")
+    public T size(int width, int height) {
         this.width = width;
         this.height = height;
         return (T) this;
     }
 
-    public T position(int x, int y){
+    @SuppressWarnings("unchecked")
+    public T size(int w) {
+        this.width = w;
+        this.height = w;
+        return (T) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T position(int x, int y) {
         this.x = x;
         this.y = y;
         return (T) this;

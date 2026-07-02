@@ -7,11 +7,11 @@ import net.minecraft.client.gui.widget.Widget;
 
 import java.util.function.Consumer;
 
-public class BaseWidget implements Widget, Drawable, Selectable, Element {
-    int x;
-    int y;
-    int width;
-    int height;
+public class BaseWidget<T extends BaseWidget<T>> implements Widget, Drawable, Selectable, Element {
+    protected int x;
+    protected int y;
+    protected int width;
+    protected int height;
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -48,17 +48,15 @@ public class BaseWidget implements Widget, Drawable, Selectable, Element {
         return y;
     }
 
-    public void setPosition(int x, int y){
-        setX(x);
-        setY(y);
-    }
-
-    public void setWidth(int width){
+    public T setWidth(int width){
         this.width = width;
+        return (T) this;
     }
 
-    public void setHeight(int height){
+    public T setHeight(int height){
         this.height = height;
+        return (T) this;
+
     }
 
     @Override
@@ -71,9 +69,10 @@ public class BaseWidget implements Widget, Drawable, Selectable, Element {
         return height;
     }
 
-    public void setSize(int width, int height){
+    public T setSize(int width, int height){
         setWidth(width);
         setHeight(height);
+        return (T) this;
     }
 
     @Override
@@ -85,6 +84,8 @@ public class BaseWidget implements Widget, Drawable, Selectable, Element {
     public void forEachChild(Consumer<ClickableWidget> consumer) {
 
     }
+
+    public void tick(){}
 
     @Override
     public SelectionType getType() {

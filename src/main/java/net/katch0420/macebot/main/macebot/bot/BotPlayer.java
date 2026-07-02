@@ -1,7 +1,11 @@
 package net.katch0420.macebot.main.macebot.bot;
 
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.katch0420.macebot.main.macebot.control.ActionContext;
 import net.katch0420.macebot.main.macebot.control.PlayerResolver;
+import net.katch0420.macebot.main.settings.main.SettingsKey;
+import net.katch0420.macebot.main.settings.server.Settings;
+import net.katch0420.macebot.main.settings.server.SettingsSyncHelper;
 import net.katch0420.macebot.main.utils.RayTracer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -72,13 +76,17 @@ public class BotPlayer {
     }
 
     private void resolvePlayer() {
-        serverPlayer = resolver.resolve(ctx);
+        ServerPlayerEntity player = resolver.resolve(ctx);
+        if (player != null && (serverPlayer == null || serverPlayer.getId() != player.getId())) {
+            SettingsSyncHelper.applyAndBroadcast(SettingsKey.OPPONENT_ID, player.getId(), server);
+        }
+        serverPlayer = player;
     }
+
 
     // ── Availability ──────────────────────────────────────────────────────────
 
     public boolean isAvailable()       { return serverPlayer != null; }
-    public boolean isTargetAvailable() { return getTargetEntity() != null; }
 
     public boolean isTargetOnCrossHair() {
         return isAvailable() && RayTracer.rayTraceEntity(serverPlayer, 3.5) != null;
@@ -129,17 +137,31 @@ public class BotPlayer {
     }
 
     public ServerWorld getServerWorld() {
-        return isAvailable() ? serverPlayer.getServerWorld() : null;
+        return isAvailable() ?
+                //? if >=1.21.9
+                /*serverPlayer.getEntityWorld() : null;*/
+                //? if >=1.21.6 <=1.21.8
+                /*serverPlayer.getWorld() : null;*/
+                //? if <=1.21.5
+                serverPlayer.getServerWorld() : null;
     }
 
     public World getWorld() {
-        return isAvailable() ? serverPlayer.getWorld() : null;
+        return isAvailable() ?
+                //? if >=1.21.9 {
+                /*serverPlayer.getEntityWorld() : null;
+                 *///?} else
+                serverPlayer.getWorld() : null;
     }
 
     public HitResult getTarget() {return RayTracer.rayTraceHitResult(serverPlayer, 0.5f, false, serverPlayer.getEntityInteractionRange());}
 
     public Entity getTargetEntity() {
         return isAvailable() ? RayTracer.rayTraceEntity(serverPlayer) : null;
+    }
+
+    public boolean isTargetAvailable() {
+        return (isAvailable() ? RayTracer.rayTraceEntity(serverPlayer,serverPlayer.getEntityInteractionRange() - Settings.getDifficulty().entityDetectionRangeDecrease) : null) != null;
     }
 
     public BlockPos getTargetBlock() {

@@ -1,6 +1,7 @@
 package net.katch0420.macebot.main.macebot.control;
 
 import net.katch0420.macebot.main.macebot.bot.BotPlayer;
+import net.katch0420.macebot.main.settings.server.Settings;
 
 /**
  * Holds the two BotPlayer contexts (bot and opponent) and updates them each tick.
@@ -52,5 +53,9 @@ public class ActionContext {
         boolean botOk = bot.update();
         opponent.update(); // update regardless — may find a new target
         return botOk;
+    }
+
+    public Difficulty getDifficulty() {
+        return Settings.getDifficulty();
     }
 }

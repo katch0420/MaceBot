@@ -40,7 +40,14 @@ public interface PlayerResolver {
             BotPlayer bot = ctx.bot;
             if (!bot.isAvailable()) return null;
 
-            return bot.serverPlayer.getServerWorld().getPlayers().stream()
+            return bot.serverPlayer
+                    //? if >=1.21.9
+                    /*.getEntityWorld()*/
+                    //? if >=1.21.6 <=1.21.8
+                    /*.getWorld()*/
+                    //? if <=1.21.5
+                    .getServerWorld()
+                    .getPlayers().stream()
                     .filter(p -> p != bot.serverPlayer)
                     .min((a, b) -> Float.compare(
                             bot.serverPlayer.distanceTo(a),

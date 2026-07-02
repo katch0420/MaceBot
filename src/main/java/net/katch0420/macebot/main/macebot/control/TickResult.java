@@ -14,7 +14,7 @@ public final class TickResult {
     public enum Status { PASS, SUCCESS, FAIL }
 
     public final Status   status;
-    public final BotAction nextAction; // null = clear to NONE on success
+    public final BotAction nextAction; // null = clear to NONE on info
 
     private TickResult(Status status, BotAction nextAction) {
         this.status     = status;

@@ -1,136 +1,110 @@
 package net.katch0420.macebot.client.gui.widgets.core;
 
-import net.minecraft.client.gui.DrawContext;
+//? if >=1.21.9 {
+/*import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
+*///?}
+import com.google.common.collect.Lists;
+import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.navigation.GuiNavigation;
 import net.minecraft.client.gui.navigation.GuiNavigationPath;
-import org.apache.commons.compress.utils.Lists;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class ParentWidget extends ChildWidget{
-    public final List<ChildWidget> children = Lists.newArrayList();
+public class ParentWidget<P extends ParentWidget<P>> extends ChildWidget<P> implements ParentElement {
 
-    public void addDrawableChild(ChildWidget child){
-        if(child != null){
-            children.add(child);
+    private final List<Element> children = Lists.<Element>newArrayList();
+    private final List<Drawable> drawables = Lists.<Drawable>newArrayList();
+
+    @Override
+    public List<? extends Element> children() {
+        return this.children;
+    }
+
+    protected <T extends Element & Drawable & Selectable> T addDrawableChild(T drawableElement) {
+        this.drawables.add(drawableElement);
+        return this.addSelectableChild(drawableElement);
+    }
+
+    protected <T extends Drawable> T addDrawable(T drawable) {
+        this.drawables.add(drawable);
+        return drawable;
+    }
+
+    protected <T extends Element & Selectable> T addSelectableChild(T child) {
+        this.children.add(child);
+        return child;
+    }
+
+    protected void remove(Element child) {
+        if (child instanceof Drawable) {
+            this.drawables.remove((Drawable)child);
         }
+        this.children.remove(child);
     }
 
-    public void removeDrawableChild(ChildWidget child){
-        children.remove(child);
+    protected void clearChildren() {
+        this.drawables.clear();
+        this.children.clear();
     }
 
-    public void clearChildren(){
-        children.clear();
+    @Nullable
+    private Element focused;
+    private boolean dragging;
+
+    @Override
+    public final boolean isDragging() {
+        return this.dragging;
     }
 
-    public List<ChildWidget> getChildren(){
-        return children;
+    @Override
+    public final void setDragging(boolean dragging) {
+        this.dragging = dragging;
+    }
+
+    @Nullable
+    @Override
+    public Element getFocused() {
+        return this.focused;
+    }
+
+    @Override
+    public void setFocused(@Nullable Element focused) {
+        if (this.focused != null) {
+            this.focused.setFocused(false);
+        }
+
+        if (focused != null) {
+            focused.setFocused(true);
+        }
+
+        this.focused = focused;
+    }
+
+    @Override
+    public void tick() {
+        for (Element child : children) {
+            if(child instanceof BaseWidget<?> c) c.tick();
+        }
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        for(ChildWidget child : children){
+        for (Drawable child : drawables) {
             child.render(context, mouseX, mouseY, delta);
         }
     }
 
     @Override
-    public void mouseMoved(double mouseX, double mouseY) {
-        for(ChildWidget child : children){
-            child.mouseMoved(mouseX, mouseY);
-        }
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        for (ChildWidget child : children) {
-            if (child.mouseClicked(mouseX, mouseY, button)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        for (ChildWidget child : children) {
-            if (child.mouseReleased(mouseX, mouseY, button)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        for (ChildWidget child : children) {
-            if (child.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        for (ChildWidget child : children) {
-            if (child.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        for (ChildWidget child : children) {
-            if (child.keyPressed(keyCode, scanCode, modifiers)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        for (ChildWidget child : children) {
-            if (child.keyReleased(keyCode, scanCode, modifiers)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean charTyped(char chr, int modifiers) {
-        for (ChildWidget child : children) {
-            if (child.charTyped(chr, modifiers)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
-        for (ChildWidget child : children) {
+        for (Element child : children) {
             if (child.isMouseOver(mouseX, mouseY)) {
                 return true;
             }
         }
-        return false;
-    }
-
-    @Override
-    public @Nullable GuiNavigationPath getNavigationPath(GuiNavigation navigation) {
-        for (ChildWidget child : children) {
-            GuiNavigationPath path = child.getNavigationPath(navigation);
-            if (path != null) {
-                return path;
-            }
-        }
-        return null;
+        return mouseX >= getX() && mouseY >= getY() && mouseX < getX() + getWidth() && mouseY < getY() + getHeight();
     }
 }

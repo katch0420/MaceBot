@@ -2,55 +2,38 @@ package net.katch0420.macebot.main.macebot.control.actions;
 
 import net.katch0420.macebot.main.macebot.control.ActionContext;
 import net.katch0420.macebot.main.macebot.control.ActionManager;
+import net.katch0420.macebot.main.macebot.control.Difficulty;
 import net.katch0420.macebot.main.macebot.control.TickResult;
 
-/**
- * Base class for every bot action — mirrors how Minecraft structures Item.
- *
- * Each subclass owns:
- *  - its probability weight + conditions (getWeight / canSelect)
- *  - its full execution logic (tick)
- *  - its step counter so Controller doesn't track that
- *
- * Actions are registered as singletons in Actions.java.
- * Step state is on the instance, so only one action runs at a time.
- */
 public abstract class BotAction {
 
     private int step = 1;
 
-    // ── Selection ─────────────────────────────────────────────────────────────
-
-    /**
-     * Whether this action can appear in the random selection pool.
-     * Override to return false for EAT, BLOCK, MACE_HIT, ELYTRA_ATTACK —
-     * those are triggered by game logic, not random selection.
-     */
     public boolean canSelect() { return true; }
 
-    /**
-     * Weight for random selection. 0 or negative = won't be selected.
-     * Conditions (Settings flags, distance checks, etc.) go here.
-     *
-     * @param ctx        live game context
-     * @param lastAction the action that ran just before this selection
-     */
-    public abstract double getWeight(ActionContext ctx, BotAction lastAction);
+    public double getWeight(ActionContext ctx, BotAction last) {
+        double base = computeBaseWeight(ctx, last);
+        if (base == 0) return 0; // hard-disabled actions skip difficulty math
+        return adjustForDifficulty(base, ctx.getDifficulty());
+    }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // Actions define their full context logic here — untouched
+    protected double computeBaseWeight(ActionContext ctx, BotAction last){
+        return 0;
+    };
 
-    /** Called once when the controller picks this action. Reset state here. */
+    // Actions override this to shape their own weight per difficulty
+    // Default: no change — actions that don't care skip it
+    protected double adjustForDifficulty(double base, Difficulty d) {
+        return base;
+    }
     public void onStart(ActionManager am, ActionContext ctx) {
         step = 1;
     }
 
-    /**
-     * Called every server tick while this action is current.
-     * Return TickResult.pass() to keep running, .success() / .fail() to stop.
-     */
     public abstract TickResult tick(ActionManager am, ActionContext ctx);
 
-    /** Called when the action ends for any reason (success or fail). */
+    /** Called when the action ends for any reason (info or fail). */
     public void onEnd(ActionManager am, ActionContext ctx) {}
 
     // ── Step helpers ──────────────────────────────────────────────────────────

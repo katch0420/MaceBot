@@ -30,7 +30,11 @@ public class Messenger {
             }
             player.sendMessage(msg, overlay);
             if (sound) {
-                player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS);
+                //? if >=1.21.9 {
+                /*player.getEntityWorld()
+                 *///?} else
+                player.getWorld()
+                        .playSound(null, player.getBlockPos(), SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS);
             }
             messageComponents.clear();
         }

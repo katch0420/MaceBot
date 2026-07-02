@@ -55,7 +55,7 @@ public class PlayerCommands {
             return 0;
         }
 
-        KitGiver.giveBuiltInKit(player, kit, unbreakable);
+        KitGiver.giveKit(player, kit, unbreakable);
         Messenger.add("Gave ", Colors.BaseColor);
         if (unbreakable) Messenger.add("unbreakable ", Colors.BaseColor);
         Messenger.add(kit.getDisplayName(), Colors.BaseColor);

@@ -70,7 +70,12 @@ public class RayTracer {
         double bottomY = box.minY;
         Vec3d start = new Vec3d(entity.getX(), bottomY, entity.getZ());
         Vec3d end = new Vec3d(entity.getX(), bottomY - 16, entity.getZ());
-        BlockHitResult hit = entity.getWorld().raycast(new RaycastContext(
+        BlockHitResult hit =
+                //? if >=1.21.9 {
+                /*entity.getEntityWorld()
+                 *///?} else
+                entity.getWorld()
+                        .raycast(new RaycastContext(
                 start,
                 end,
                 RaycastContext.ShapeType.COLLIDER,
@@ -79,7 +84,17 @@ public class RayTracer {
         ));
         if (hit.getType() == HitResult.Type.BLOCK) {
             BlockPos pos = hit.getBlockPos();
-            VoxelShape shape = entity.getWorld().getBlockState(pos).getCollisionShape(entity.getWorld(), pos);
+            VoxelShape shape =
+                    //? if >=1.21.9 {
+                    /*entity.getEntityWorld()
+                     *///?} else
+                    entity.getWorld()
+                            .getBlockState(pos).getCollisionShape(
+                                    //? if >=1.21.9 {
+                                    /*entity.getEntityWorld()
+                                     *///?} else
+                                    entity.getWorld()
+                                    , pos);
             double groundY = pos.getY() + shape.getMax(Direction.Axis.Y);
             return bottomY - groundY;
         }

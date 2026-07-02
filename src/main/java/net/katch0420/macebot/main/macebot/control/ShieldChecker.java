@@ -69,7 +69,11 @@ public class ShieldChecker {
 
         ItemStack shield = macebotCtx.getInventory().getStack(BotSlots.SHIELD);
         if (!shield.isOf(Items.SHIELD)) return true;
-        if (macebotCtx.serverPlayer.getItemCooldownManager().isCoolingDown(shield)) return true;
+        if (macebotCtx.serverPlayer.getItemCooldownManager()
+                //? if >=1.21.2 {
+                /*.isCoolingDown(shield)) return true;
+                *///?} else
+                .isCoolingDown(shield.getItem())) return true;
         return false;
     }
 

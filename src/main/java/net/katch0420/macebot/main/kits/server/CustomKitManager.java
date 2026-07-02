@@ -4,13 +4,16 @@ import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import net.fabricmc.loader.api.FabricLoader;
 import net.katch0420.macebot.main.MaceBot;
+import net.katch0420.macebot.main.kits.main.ItemData;
+import net.katch0420.macebot.main.kits.main.Kit;
+import net.katch0420.macebot.main.kits.main.KitStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.*;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.io.*;
@@ -39,7 +42,7 @@ public class CustomKitManager {
         JsonObject root = new JsonObject();
         root.addProperty("id",          kit.getId());
         root.addProperty("displayName", kit.getDisplayName());
-        root.addProperty("iconItem",    kit.getIconItem() != null ? kit.getIconItem() : "");
+        root.addProperty("iconItem",    kit.getIconId() != null ? kit.getIconId().getPath() : "");
 
         JsonObject items = new JsonObject();
         kit.getItems().forEach((slot, kitStack) -> {
@@ -70,23 +73,7 @@ public class CustomKitManager {
             // This avoids needing a PlayerEntity — registryManager is enough
             Item item = Registries.ITEM.get(data.id);
             ItemStack stack = new ItemStack(item, kitStack.count);
-
-            // Apply stored components (custom name, lore, potion contents, etc.)
-            if (data.components != null && !data.components.isEmpty()) {
-                stack.applyComponentsFrom(data.components);
-            }
-
-            // Apply enchantments using registryManager (no player needed)
-            if (data.enchantments != null && !data.enchantments.isEmpty()) {
-                Registry<Enchantment> registry = registryManager.getOrThrow(RegistryKeys.ENCHANTMENT);
-                ItemEnchantmentsComponent.Builder builder =
-                        new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
-
-                for (Map.Entry<RegistryKey<Enchantment>, Integer> entry : data.enchantments.entrySet()) {
-                    registry.getEntry(entry.getKey().getValue()).ifPresent(e -> builder.add(e, entry.getValue()));
-                }
-                stack.set(DataComponentTypes.ENCHANTMENTS, builder.build());
-            }
+            stack.applyComponentsFrom(data.components);
 
             // Encode the full stack with ItemStack.CODEC — handles everything
             RegistryOps<JsonElement> ops = RegistryOps.of(JsonOps.INSTANCE, registryManager);
@@ -133,7 +120,7 @@ public class CustomKitManager {
             String displayName = root.get("displayName").getAsString();
             String iconItem    = root.has("iconItem") ? root.get("iconItem").getAsString() : "";
 
-            Kit kit = new Kit(id, displayName, iconItem, true);
+            Kit kit = new Kit(id, displayName, Identifier.of(iconItem), true);
 
             if (root.has("items")) {
                 root.getAsJsonObject("items").entrySet().forEach(entry -> {

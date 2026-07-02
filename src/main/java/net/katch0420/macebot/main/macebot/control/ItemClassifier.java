@@ -2,8 +2,12 @@ package net.katch0420.macebot.main.macebot.control;
 
 import net.katch0420.macebot.main.macebot.bot.BotStack.AttackType;
 import net.katch0420.macebot.main.macebot.bot.BotStack.StackType;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.*;
-import net.minecraft.item.consume.UseAction;
+//? if >=1.21.2 {
+/*import net.minecraft.item.consume.UseAction;
+ *///?} else
+import net.minecraft.util.UseAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,17 +34,22 @@ public final class ItemClassifier {
 
     static {
         // Melee weapons
+        //? if >=1.21.5 {
+        /*add(s -> s.get(DataComponentTypes.WEAPON) != null,
+                StackType.WEAPON, AttackType.MELEE);
+        *///?} else {
         add(s -> s.getItem() instanceof SwordItem || s.getItem() instanceof AxeItem,
                 StackType.WEAPON, AttackType.MELEE);
-
+        //?}
         // Armor
+        //? if >=1.21.2 {
+        /*add(s -> s.get(DataComponentTypes.EQUIPPABLE) != null,
+        *///?} else
         add(s -> s.getItem() instanceof ArmorItem,
                 StackType.ARMOR, AttackType.FIST);
 
         // Mining tools
-        add(s -> s.getItem() instanceof PickaxeItem
-                        || s.getItem() instanceof ShovelItem
-                        || s.getItem() instanceof HoeItem,
+        add(s -> s.get(DataComponentTypes.TOOL) != null,
                 StackType.TOOL, AttackType.MELEE);
 
         // Non-combat tools

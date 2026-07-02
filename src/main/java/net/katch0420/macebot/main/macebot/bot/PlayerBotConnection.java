@@ -3,8 +3,11 @@ package net.katch0420.macebot.main.macebot.bot;
 import io.netty.channel.embedded.EmbeddedChannel;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.NetworkSide;
-import net.minecraft.network.NetworkState;
 import net.minecraft.network.listener.PacketListener;
+//? if >=1.21.5 {
+//import net.minecraft.network.state.NetworkState;
+//?} else
+import net.minecraft.network.NetworkState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

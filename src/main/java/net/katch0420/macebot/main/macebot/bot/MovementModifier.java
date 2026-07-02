@@ -2,8 +2,10 @@ package net.katch0420.macebot.main.macebot.bot;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.consume.UseAction;
-
+//? if >=1.21.2 {
+/*import net.minecraft.item.consume.UseAction;
+*///?} else
+import net.minecraft.util.UseAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;

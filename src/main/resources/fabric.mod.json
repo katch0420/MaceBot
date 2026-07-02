@@ -1,9 +1,9 @@
 {
-	"schemaVersion": 1,
-	"id": "macebot",
-	"version": "${version}",
-	"name": "MaceBot",
-	"description": "This is a PvP practice mod made specially for MacePvP. This is still In development. But it doesn't mean you can't try it",
+    "schemaVersion": 1,
+    "id": "${id}",
+    "version": "${version}",
+    "name": "${name}",
+	"description": "Mace PvP Coach. Use MaceBot's features to enhance your Mace PvP skills",
 	"authors": [
 		"katch0420"
 	],
@@ -18,30 +18,19 @@
 		"main": [
           "net.katch0420.macebot.main.MaceBot"
 		],
-		"fabric-datagen": [
-          "net.katch0420.macebot.MaceBotDataGenerator"
-		],
         "client": [
           "net.katch0420.macebot.client.MaceBotClient"
-        ],
-        "server": [
-          "net.katch0420.macebot.server.MaceBotServer"
         ]
 	},
 	"mixins": [
 		"macebot.mixins.json"
 	],
+    "accessWidener": "macebot.accesswidener",
 	"depends": {
-		"fabricloader": ">=0.16.10",
-		"minecraft": ["1.21.2","1.21.3"],
-		"java": ">=21",
-		"fabric-api": "*"
+		"fabricloader": ">=0.17.0",
+        "minecraft": "${minecraft}"
 	},
 	"suggests": {
 		"another-mod": "*"
-	},
-    "breaks": {
-        "carpet": "*",
-        "carpet-pvp": "*"
-    }
+	}
 }

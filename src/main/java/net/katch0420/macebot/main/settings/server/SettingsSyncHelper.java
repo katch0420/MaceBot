@@ -2,6 +2,8 @@ package net.katch0420.macebot.main.settings.server;
 
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
+import net.katch0420.macebot.main.MaceBot;
 import net.katch0420.macebot.main.networking.packets.s2c.UpdateSettingS2CPacket;
 import net.katch0420.macebot.main.settings.main.SettingsKey;
 import net.minecraft.server.MinecraftServer;
@@ -16,6 +18,10 @@ public class SettingsSyncHelper {
         for (SettingsKey key : SettingsKey.values()) {
             sendToPlayer(key, player);
         }
+    }
+
+    public static void resyncSettingsForAll() {
+        MaceBot.server.getPlayerManager().getPlayerList().forEach(SettingsSyncHelper::sendAllSettings);
     }
 
     /**

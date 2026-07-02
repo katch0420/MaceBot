@@ -18,7 +18,9 @@ public record UpdateCursorStackC2SPacket(ItemStack stack, boolean clear) impleme
     public static final PacketCodec<RegistryByteBuf, UpdateCursorStackC2SPacket> CODEC = PacketCodec.tuple(
             ItemStack.PACKET_CODEC,
             UpdateCursorStackC2SPacket::stack,
-
+            //? if >=1.21.4 {
+            /*PacketCodecs.BOOLEAN,
+            *///?} else
             PacketCodecs.BOOL,
             UpdateCursorStackC2SPacket::clear,
             UpdateCursorStackC2SPacket::new
