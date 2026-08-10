@@ -63,7 +63,7 @@ Dial the bot's difficulty up or down and pick from focused practice modes instea
 
 ### Client Side
 
-The client-side mod is entirely optional — MaceBot works fully through commands without it — but it adds a complete GUI for players who'd rather not type. Open it with the default keybind **`O`**.
+The client-side mod is entirely optional — MaceBot works fully through commands without it — but it adds a complete GUI for players who'd rather not type. Open it with the default keybind **`P`**.
 
 - **Taskbar GUI** — Settings, Control Panel, Kits, and Info all live in one unified, taskbar-style screen instead of separate windows, with full flexible control over everything — well beyond what commands alone offer.
 - **Control Panel** — Start, pause, spawn, or despawn the bot, and rename it on the fly through a Name Field. If the name matches a real Minecraft account, MaceBot fetches and displays that player's real skin.
