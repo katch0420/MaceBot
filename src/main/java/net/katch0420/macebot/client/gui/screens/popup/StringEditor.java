@@ -2,10 +2,15 @@ package net.katch0420.macebot.client.gui.screens.popup;
 
 import net.katch0420.macebot.client.gui.widgets.buttons.Button;
 import net.katch0420.macebot.main.utils.LegacyText;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+//? if <=1.21.11 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+//? if >=1.21.9
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
@@ -24,9 +29,9 @@ public class StringEditor extends PopupScreen {
     private int btnH;
     private int btnW;
 
-    private TextFieldWidget field;
+    private EditBox field;
 
-    public StringEditor(Screen parent, Text title, String initialVal, Consumer<String> onConfirm) {
+    public StringEditor(Screen parent, Component title, String initialVal, Consumer<String> onConfirm) {
         super(parent);
         this.title      = title;
         this.initialVal = initialVal != null ? initialVal : "";
@@ -44,8 +49,10 @@ public class StringEditor extends PopupScreen {
         btnW     = 64;
 
         // Compute heights first, then use them in popupH
-        titleH   = textRenderer.fontHeight + margin * 2;
-        fieldH   = textRenderer.fontHeight + 8;   // +8 so text isn't clipped
+        // MOJANG-VERIFY: Yarn's TextRenderer.fontHeight -> guessing Mojang's Font.lineHeight
+        // (kept consistent with the same assumption made in Button.java).
+        titleH   = font.lineHeight + margin * 2;
+        fieldH   = font.lineHeight + 8;   // +8 so text isn't clipped
 
         popupW = Math.max(260, Math.min(width * 2 / 5, 400));
         popupH = titleH + margin + fieldH + margin + btnH + margin;
@@ -58,19 +65,25 @@ public class StringEditor extends PopupScreen {
         btnY = fieldY + fieldH + margin;
 
         // Text field
-        field = new TextFieldWidget(
-                textRenderer,
+        // MOJANG-VERIFY: Yarn's TextFieldWidget -> Mojang's EditBox (confirmed class rename);
+        // constructor arg order/shape is carried over as-is, verify against your actual EditBox
+        // constructor signature.
+        field = new EditBox(
+                font,
                 popupX + margin, fieldY,
                 popupW - 2 * margin, fieldH,
-                Text.literal("Enter text...")
+                Component.literal("Enter text...")
         );
         field.setMaxLength(256);
-        field.setText(initialVal);
+        // MOJANG-VERIFY: Yarn's TextFieldWidget.setText/getText -> guessing EditBox's
+        // setValue/getValue (this is the well-known rename for this widget).
+        field.setValue(initialVal);
         field.setFocused(true);
-        addDrawableChild(field);
+        setFocused(field);
+        addRenderableWidget(field);
 
         // Done
-        addDrawableChild(Button.builder()
+        addRenderableWidget(Button.builder()
                 .position(popupX + margin, btnY)
                 .size(btnW, btnH)
                 .backgroundColor(theme.success())
@@ -78,12 +91,12 @@ public class StringEditor extends PopupScreen {
                 .hoverColor(theme.success() + 0xFF101010)
                 .holdColor(theme.success() + 0xFF202020)
                 .borderColor(-1)
-                .baseLabel(Text.literal("Done"))
+                .baseLabel(Component.literal("Done"))
                 .onClick(b -> confirm())
                 .build());
 
         // Cancel
-        addDrawableChild(Button.builder()
+        addRenderableWidget(Button.builder()
                 .position(popupX + margin * 2 + btnW, btnY)
                 .size(btnW, btnH)
                 .backgroundColor(theme.body_button_background())
@@ -91,16 +104,16 @@ public class StringEditor extends PopupScreen {
                 .hoverColor(theme.body_button_background() + 0xFF101010)
                 .holdColor(theme.body_button_background() + 0xFF202020)
                 .borderColor(-1)
-                .baseLabel(Text.literal("Cancel"))
-                .onClick(b -> close())
+                .baseLabel(Component.literal("Cancel"))
+                .onClick(b -> onClose())
                 .build());
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
     private void confirm() {
-        if (onConfirm != null) onConfirm.accept(field.getText());
-        close();
+        if (onConfirm != null) onConfirm.accept(field.getValue());
+        onClose();
     }
 
     @Override
@@ -109,24 +122,37 @@ public class StringEditor extends PopupScreen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(
+            //? if >=1.21.9 {
+            KeyEvent keyEvent
+            //?} else
+            //int keyCode, int scanCode, int modifiers
+    ) {
+        //? if >=1.21.9
+        int keyCode = keyEvent.key();
+
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             confirm();
             return true;
         }
         // Esc is handled by super → close()
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(
+                //? if >=1.21.9 {
+                keyEvent
+                //?} else
+                //keyCode, scanCode, modifiers
+        );
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
-
-    @Override
-    public void renderPopupScreen(DrawContext c, int mx, int my) {
+    //? if >1.21.11 {
+    /*@Override
+    public void renderPopupScreen(GuiGraphicsExtractor c, int mx, int my) {
         // Title bar
         c.fill(popupX, popupY, popupX + popupW, popupY + titleH, theme.header_background());
-        c.drawText(textRenderer, title,
+        c.text(font, title,
                 popupX + margin,
-                popupY + (titleH - textRenderer.fontHeight) / 2,
+                popupY + (titleH - font.lineHeight) / 2,
                 theme.header_foreground(), false);
 
         // Body — use popupBodyColor() from base so it's always distinct from parent
@@ -145,4 +171,32 @@ public class StringEditor extends PopupScreen {
         // Accent border around the whole popup — drawPopupBorder() is from base class
         drawPopupBorder(c, theme.accent());
     }
+    *///?}
+    //? if <=1.21.11 {
+    @Override
+    public void renderPopupScreen(GuiGraphics c, int mx, int my) {
+        // Title bar
+        c.fill(popupX, popupY, popupX + popupW, popupY + titleH, theme.header_background());
+        c.drawString(font, title,
+                popupX + margin,
+                popupY + (titleH - font.lineHeight) / 2,
+                theme.header_foreground(), false);
+
+        // Body — use popupBodyColor() from base so it's always distinct from parent
+        c.fill(popupX, popupY + titleH, popupX + popupW, popupY + popupH, popupBodyColor());
+
+        // Separator under title
+        c.fill(popupX, popupY + titleH, popupX + popupW, popupY + titleH + 1, theme.panel_separator());
+
+        // Field border
+        int fx = popupX + margin, fw = popupW - 2 * margin;
+        c.fill(fx - 1, fieldY - 1,     fx + fw + 1, fieldY,              theme.panel_separator());
+        c.fill(fx - 1, fieldY + fieldH, fx + fw + 1, fieldY + fieldH + 1, theme.panel_separator());
+        c.fill(fx - 1, fieldY - 1,     fx,           fieldY + fieldH + 1, theme.panel_separator());
+        c.fill(fx + fw, fieldY - 1,    fx + fw + 1,  fieldY + fieldH + 1, theme.panel_separator());
+
+        // Accent border around the whole popup — drawPopupBorder() is from base class
+        drawPopupBorder(c, theme.accent());
+    }
+    //?}
 }

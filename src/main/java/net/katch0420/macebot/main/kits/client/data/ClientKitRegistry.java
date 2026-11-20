@@ -5,12 +5,11 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.katch0420.macebot.client.gui.bodies.Bodies;
 import net.katch0420.macebot.client.gui.bodies.KitsBody;
-import net.katch0420.macebot.client.gui.frames.MainFrame;
 import net.katch0420.macebot.main.kits.main.Kit;
-import net.katch0420.macebot.main.networking.packets.c2s.KitSyncC2SPacket;
-import net.katch0420.macebot.main.networking.packets.s2c.KitSyncS2CPacket;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Identifier;
+import net.katch0420.macebot.main.network.packets.c2s.KitSyncC2SPacket;
+import net.katch0420.macebot.main.network.packets.s2c.KitSyncS2CPacket;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -79,7 +78,7 @@ public class ClientKitRegistry {
     }
 
     public static void handleClient(KitSyncS2CPacket p, ClientPlayNetworking.Context c) {
-        MinecraftClient mc = c.client();
+        Minecraft mc = c.client();
         mc.execute(() -> {
             switch (p.command()) {
                 case KitSyncC2SPacket.CMD_RESET -> clear();
@@ -88,10 +87,10 @@ public class ClientKitRegistry {
                     Kit existing = KITS.get(p.kitId());
                     if (existing != null) {
                         existing.setDisplayName(p.displayName());
-                        existing.setIconItem(Identifier.of(p.iconItem()));
+                        existing.setIconItem(Identifier.parse(p.iconItem()));
                     } else {
                         KITS.put(p.kitId(), new Kit(p.kitId(), p.displayName(),
-                                Identifier.of(p.iconItem()), p.isCustom()));
+                                Identifier.parse(p.iconItem()), p.isCustom()));
                     }
                     notifyListeners();
                 }
@@ -106,10 +105,14 @@ public class ClientKitRegistry {
                     kit.clear();
                     if (!p.payload().equals("{}"))
                         KitSyncC2SPacket.deserializeItems(kit, p.payload(),
-                                Objects.requireNonNull(c.client().world).getRegistryManager());
+                                Objects.requireNonNull(c.client().level).registryAccess());
                     notifyListeners();
                 }
             }
         });
+    }
+
+    public static void tick() {
+        if(KITS.isEmpty() && Minecraft.getInstance().level != null) ClientPlayNetworking.send(KitSyncC2SPacket.requestResync());
     }
 }

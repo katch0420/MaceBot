@@ -1,24 +1,24 @@
 package net.katch0420.macebot.main.utils;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.*;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.RaycastContext;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.*;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class RayTracer {
 
-    public static Entity rayTraceEntity(ServerPlayerEntity source){
-        return rayTraceEntity(source,source.getEntityInteractionRange());
+    public static Entity rayTraceEntity(ServerPlayer source){
+        return rayTraceEntity(source,source.entityInteractionRange());
     }
 
-    public static Entity rayTraceEntity(ServerPlayerEntity source, double entityInteractionRange){
-        float a = 0.5F;
-        HitResult hr = rayTraceHitResult(source,a,false, entityInteractionRange);
+    public static Entity rayTraceEntity(ServerPlayer source, double entityInteractionRange){
+        HitResult hr = rayTraceHitResult(source, entityInteractionRange);
         Entity e;
         if(hr instanceof EntityHitResult ehr){
             e = ehr.getEntity();
@@ -27,79 +27,66 @@ public class RayTracer {
         }
         return e;
     }
-    public static BlockHitResult rayTraceBlock(ServerPlayerEntity source, boolean fluid){
-        float a = 0.5F;
-        HitResult hr = rayTraceHitResult(source, a, fluid, source.getEntityInteractionRange());
-        return hr instanceof BlockHitResult bhr ? bhr : BlockHitResult.createMissed(null,null,null);
+    public static BlockHitResult rayTraceBlock(ServerPlayer source){
+        HitResult hr = rayTraceHitResult(source, source.entityInteractionRange());
+        return hr instanceof BlockHitResult bhr ? bhr : BlockHitResult.miss(null,null,null);
     }
-    public static HitResult rayTraceHitResult(ServerPlayerEntity source, float tickDelta, boolean fluid, double entityInteractionRange){
-        double a = source.getBlockInteractionRange();
-        double b = entityInteractionRange;
-        Entity c = source.getCameraEntity();
+    public static HitResult rayTraceHitResult(ServerPlayer source, double entityInteractionRange){
+        double d = source.blockInteractionRange();
+        double e = entityInteractionRange;
+        float f = 0.5f;
+        Entity entity = source.getCamera();
 
-        double d = Math.max(a,b);
-        double e = MathHelper.square(d);
-        Vec3d vec3d = c.getCameraPosVec(tickDelta);
-        HitResult hitResult = c.raycast(d, tickDelta, fluid);
-        double f = hitResult.getPos().squaredDistanceTo(vec3d);
-        if(hitResult.getType() != HitResult.Type.MISS){
-            e = f;
-            d = Math.sqrt(f);
+        double g = Math.max(d, e);
+        double h = Mth.square(g);
+        Vec3 vec3 = entity.getEyePosition(f);
+        HitResult hitResult = entity.pick(g, f, false);
+        double i = hitResult.getLocation().distanceToSqr(vec3);
+        if (hitResult.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
+            h = i;
+            g = Math.sqrt(i);
         }
 
-        Vec3d vec3d2 = c.getRotationVec(tickDelta);
-        Vec3d vec3d3 = vec3d.add(vec3d2.x * d, vec3d2.y * d, vec3d2.z * d);
-        Box box = c.getBoundingBox().stretch(vec3d2.multiply(d)).expand(1.0,1.0,1.0);
-        EntityHitResult entityHitResult = ProjectileUtil.raycast(c,vec3d, vec3d3,box, (entity) -> !entity.isSpectator() && entity.canHit(), e);
-        return entityHitResult != null && entityHitResult.getPos().squaredDistanceTo(vec3d) < f
-                ? ensureTargetInRange(entityHitResult, vec3d, b)
-                : ensureTargetInRange(hitResult, vec3d, a);
+        Vec3 vec32 = entity.getViewVector(f);
+        Vec3 vec33 = vec3.add(vec32.x * g, vec32.y * g, vec32.z * g);
+        float j = 1.0F;
+        AABB aABB = entity.getBoundingBox().expandTowards(vec32.scale(g)).inflate(1.0F, 1.0F, 1.0F);
+        EntityHitResult entityHitResult = ProjectileUtil.getEntityHitResult(entity, vec3, vec33, aABB, (entityx) -> !entityx.isSpectator() && entityx.isPickable(), h);
+        return entityHitResult != null && entityHitResult.getLocation().distanceToSqr(vec3) < i ? filterHitResult(entityHitResult, vec3, e) : filterHitResult(hitResult, vec3, d);
     }
-    private static HitResult ensureTargetInRange(HitResult hitResult, Vec3d cameraPos, double interactionRange) {
-        Vec3d vec3d = hitResult.getPos();
-        if (!vec3d.isInRange(cameraPos, interactionRange)) {
-            Vec3d vec3d2 = hitResult.getPos();
-            Direction direction = Direction.getFacing(vec3d2.x - cameraPos.x, vec3d2.y - cameraPos.y, vec3d2.z - cameraPos.z);
-            return BlockHitResult.createMissed(vec3d2, direction, BlockPos.ofFloored(vec3d2));
+    private static HitResult filterHitResult(HitResult hitResult, Vec3 vec3, double d) {
+        Vec3 vec32 = hitResult.getLocation();
+        if (!vec32.closerThan(vec3, d)) {
+            Vec3 vec33 = hitResult.getLocation();
+            Direction direction = Direction
+                    //? if >=1.21.2 {
+                    .getApproximateNearest(vec33.x - vec3.x, vec33.y - vec3.y, vec33.z - vec3.z);
+                    //?} else
+                    //.getNearest(vec33.x - vec3.x, vec33.y - vec3.y, vec33.z - vec3.z);
+            return BlockHitResult.miss(vec33, direction, BlockPos.containing(vec33));
         } else {
             return hitResult;
         }
     }
     public static double getDistanceToGround(Entity entity) {
-        Box box = entity.getBoundingBox();
+        AABB box = entity.getBoundingBox();
         double bottomY = box.minY;
-        Vec3d start = new Vec3d(entity.getX(), bottomY, entity.getZ());
-        Vec3d end = new Vec3d(entity.getX(), bottomY - 16, entity.getZ());
+        Vec3 start = new Vec3(entity.getX(), bottomY, entity.getZ());
+        Vec3 end = new Vec3(entity.getX(), bottomY - 16, entity.getZ());
         BlockHitResult hit =
-                //? if >=1.21.9 {
-                /*entity.getEntityWorld()
-                 *///?} else
-                entity.getWorld()
-                        .raycast(new RaycastContext(
+                entity.level().clip(new ClipContext(
                 start,
                 end,
-                RaycastContext.ShapeType.COLLIDER,
-                RaycastContext.FluidHandling.NONE,
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
                 entity
         ));
         if (hit.getType() == HitResult.Type.BLOCK) {
             BlockPos pos = hit.getBlockPos();
-            VoxelShape shape =
-                    //? if >=1.21.9 {
-                    /*entity.getEntityWorld()
-                     *///?} else
-                    entity.getWorld()
-                            .getBlockState(pos).getCollisionShape(
-                                    //? if >=1.21.9 {
-                                    /*entity.getEntityWorld()
-                                     *///?} else
-                                    entity.getWorld()
-                                    , pos);
-            double groundY = pos.getY() + shape.getMax(Direction.Axis.Y);
+            VoxelShape shape = entity.level().getBlockState(pos).getCollisionShape(entity.level(), pos);
+            double groundY = pos.getY() + shape.max(Direction.Axis.Y);
             return bottomY - groundY;
         }
         return 16;
     }
-
-
 }

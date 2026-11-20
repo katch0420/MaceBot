@@ -1,6 +1,5 @@
 package net.katch0420.macebot.client.gui.themes;
 
-import com.google.gson.Gson;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,7 +21,7 @@ import java.util.zip.GZIPOutputStream;
 public final class ThemeCodec {
 
     private static final String PREFIX = "MBT1:";
-    private static final Gson GSON = new Gson();
+    private static final com.google.gson.Gson GSON = ThemeJson.gson();
 
     private ThemeCodec() {}
 

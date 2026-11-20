@@ -5,10 +5,10 @@ import net.katch0420.macebot.client.gui.layout.ResponsiveLayout;
 import net.katch0420.macebot.client.gui.themes.Theme;
 import net.katch0420.macebot.client.gui.themes.Themes;
 import net.katch0420.macebot.client.gui.widgets.core.ParentWidget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class Body extends ParentWidget<Body> {
 
@@ -25,8 +25,8 @@ public class Body extends ParentWidget<Body> {
      */
     protected float uiScale = 1.0f;
 
-    public Text getLabel() {
-        return Text.of("");
+    public Component getLabel() {
+        return Component.literal("");
     }
 
     public void init() {
@@ -53,8 +53,8 @@ public class Body extends ParentWidget<Body> {
     public void removed(){
     }
 
-    public TextRenderer getTextRenderer() {
-        return MinecraftClient.getInstance().textRenderer;
+    public Font getFont() {
+        return Minecraft.getInstance().font;
     }
 
     /** Scales a base pixel value by this body's current responsive {@link #uiScale}. */
@@ -65,5 +65,9 @@ public class Body extends ParentWidget<Body> {
     /** Scales a base pixel value, but never below {@code min}. */
     protected int s(int base, int min) {
         return ResponsiveLayout.scaledMin(base, uiScale, min);
+    }
+
+    public boolean isPrimary() {
+        return false;
     }
 }

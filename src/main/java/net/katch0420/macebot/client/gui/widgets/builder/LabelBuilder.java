@@ -1,12 +1,12 @@
 package net.katch0420.macebot.client.gui.widgets.builder;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class LabelBuilder<T extends LabelBuilder<T>> extends ChildBuilder<T>{
-    protected List<Text> label = new ArrayList<>();
+    protected List<Component> label = new ArrayList<>();
     protected int backgroundColor = 0xFF000000;
     protected int foregroundColor = 0xFFFFFFFF;
     protected int holdColor = backgroundColor + 0x80888888;
@@ -15,12 +15,12 @@ public class LabelBuilder<T extends LabelBuilder<T>> extends ChildBuilder<T>{
 
     @SuppressWarnings("unchecked")
     public T label(String label){
-        this.label.add(Text.literal(label));
+        this.label.add(Component.literal(label));
         return (T) this;
     }
 
     @SuppressWarnings("unchecked")
-    public T label(Text label){
+    public T label(Component label){
         this.label.add(label);
         return (T) this;
     }

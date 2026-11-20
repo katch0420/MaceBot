@@ -1,5 +1,8 @@
 package net.katch0420.macebot.main.macebot.bot;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+
 /**
  * All configurable constants for the bot in one place.
  * Change values here — nothing else needs editing.
@@ -7,7 +10,9 @@ package net.katch0420.macebot.main.macebot.bot;
 public final class BotConfig {
 
     /** In-game username the bot will use. */
-    public static final String BOT_NAME = "MaceBot";
+    public static Component BOT_NAME = Component.nullToEmpty("MaceBot");
+
+    public static MutableComponent CUSTOM_NAME = Component.literal("MaceBot");
 
     /** Loopback address used for the fake network connection. */
     public static final String BOT_IP = "127.0.0.1";

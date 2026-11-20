@@ -4,18 +4,20 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.katch0420.macebot.main.macebot.bot.PlayerBot;
 import net.katch0420.macebot.main.macebot.bot.PlayerBotNetHandler;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.ClientConnection;
+//? if >=1.21.9 {
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.nbt.CompoundTag;
+//?}
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.contents.NbtContents;
 import net.minecraft.server.MinecraftServer;
-//? if >=1.21.9
-/*import net.minecraft.server.PlayerConfigEntry;*/
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ConnectedClientData;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-//? if >=1.21.6 <=1.21.8
-/*import net.minecraft.storage.ReadView;*/
-import net.minecraft.util.ErrorReporter;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.server.players.PlayerList;
+import net.minecraft.util.ProblemReporter;
+//? if >=1.21.6
+import net.minecraft.world.level.storage.ValueInput;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -25,50 +27,57 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 
-@Mixin(PlayerManager.class)
+@Mixin(PlayerList.class)
 public abstract class PlayerManager_playerBotMixin
 {
     @Shadow
     @Final
     private MinecraftServer server;
-
+    //? if >= 1.21.9 {
     @Inject(method = "loadPlayerData", at = @At(value = "RETURN", shift = At.Shift.BEFORE))
-    //? if >=1.21.9 {
-    /*private void fixStartingPos(PlayerConfigEntry player, CallbackInfoReturnable<Optional<NbtCompound>> cir)
-    {
-        if (server.getPlayerManager().getPlayer(player.id()) instanceof PlayerBot p)
-    *///?}
-    //? if >=1.21.6 <=1.21.8 {
-    /*private void fixStartingPos(ServerPlayerEntity player, ErrorReporter errorReporter, CallbackInfoReturnable<Optional<ReadView>> cir)
-    {
-        if (player instanceof PlayerBot p)
-    *///?}
-    //? if <=1.21.5 {
-    private void fixStartingPos(ServerPlayerEntity player, CallbackInfoReturnable<Optional<NbtCompound>> cir)
-    {
-        if (player instanceof PlayerBot p)
+    private void fixStartingPos(NameAndId nameAndId, CallbackInfoReturnable<Optional<CompoundTag>> cir) {
+        if (PlayerBot.playerBot != null && nameAndId.id().equals(PlayerBot.playerBot.getUUID())) {
+            PlayerBot.playerBot.fixStartingPos.run();
+        }
+    }
     //?}
+    //? if >=1.21.6 && <1.21.9 {
+    /*@Inject(method = "load", at = @At(value = "RETURN", shift = At.Shift.BEFORE))
+    private void fixStartingPos(ServerPlayer serverPlayer, ProblemReporter problemReporter, CallbackInfoReturnable<Optional<ValueInput>> cir)
+    {
+        if (serverPlayer instanceof PlayerBot p)
         {
             p.fixStartingPos.run();
         }
     }
+    *///?}
+    //? if <1.21.6 {
+    /*@Inject(method = "load", at = @At(value = "RETURN", shift = At.Shift.BEFORE))
+    private void fixStartingPos(ServerPlayer player, CallbackInfoReturnable<Optional<NbtContents>> cir)
+    {
+        if (player instanceof PlayerBot p)
+        {
+            p.fixStartingPos.run();
+        }
+    }
+    *///?}
 
     @WrapOperation(
-            method = "onPlayerConnect",
+            method = "placeNewPlayer",
             at = @At(
                     value = "NEW",
-                    target = "(Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/network/ClientConnection;Lnet/minecraft/server/network/ServerPlayerEntity;Lnet/minecraft/server/network/ConnectedClientData;)Lnet/minecraft/server/network/ServerPlayNetworkHandler;"
+                    target = "(Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/network/Connection;Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/server/network/CommonListenerCookie;)Lnet/minecraft/server/network/ServerGamePacketListenerImpl;"
             )
     )
-    private ServerPlayNetworkHandler replaceNetworkHandler(MinecraftServer server, ClientConnection connection, ServerPlayerEntity player, ConnectedClientData clientData, Operation<ServerPlayNetworkHandler> original)
+    private ServerGamePacketListenerImpl replaceNetworkHandler(MinecraftServer minecraftServer, Connection connection, ServerPlayer serverPlayer, CommonListenerCookie commonListenerCookie, Operation<ServerGamePacketListenerImpl> original)
     {
-        if (player instanceof PlayerBot playerBot)
+        if (serverPlayer instanceof PlayerBot playerBot)
         {
-            return new PlayerBotNetHandler(this.server, connection, playerBot, clientData);
+            return new PlayerBotNetHandler(this.server, connection, playerBot, commonListenerCookie);
         }
         else
         {
-            return original.call(this.server, connection, player, clientData);
+            return original.call(this.server, connection, serverPlayer, commonListenerCookie);
         }
     }
 }

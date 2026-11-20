@@ -3,21 +3,25 @@ package net.katch0420.macebot.client.gui.bodies;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.katch0420.macebot.client.gui.bodies.popup.KitMenuPopup;
 import net.katch0420.macebot.client.gui.screens.popup.StyledTextEditor;
-import net.katch0420.macebot.client.gui.widgets.buttons.Button;
 import net.katch0420.macebot.client.utils.Scroller;
 import net.katch0420.macebot.main.kits.client.data.ClientKitRegistry;
 import net.katch0420.macebot.main.kits.main.Kit;
-import net.katch0420.macebot.main.networking.packets.c2s.KitSyncC2SPacket;
-import net.katch0420.macebot.main.networking.packets.s2c.KitSyncS2CPacket;
+import net.katch0420.macebot.main.network.packets.c2s.KitSyncC2SPacket;
 import net.katch0420.macebot.main.utils.LegacyText;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+//? if <=1.21.11 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
+//? if >=1.21.9
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,10 +47,15 @@ public class KitsBody extends Body {
     // ── Init ──────────────────────────────────────────────────────────────────
 
     @Override
+    public boolean isPrimary() {
+        return true;
+    }
+
+    @Override
     public void init() {
         super.init();
         margin     = s(6, 4);
-        textHeight = getTextRenderer().fontHeight;
+        textHeight = getFont().lineHeight;
         entryH     = s(22, 18);
 
         panelW = availableWidth;
@@ -97,8 +106,15 @@ public class KitsBody extends Body {
         );
     }
 
+    private void setScreen(Screen screen){
+        //? if <26.2 {
+        Minecraft.getInstance().setScreen(screen);
+        //?} else
+        //Minecraft.getInstance().setScreenAndShow(screen);
+    }
+
     private void openNewKitPrompt() {
-        MinecraftClient.getInstance().setScreen(new StyledTextEditor(parent,Text.of("Create New Kit"), "New Kit",
+        setScreen(new StyledTextEditor(parent, Component.nullToEmpty("Create New Kit"), "New Kit",
                 name -> {
                     String id = name.toLowerCase().replaceAll("[^a-z0-9_]", "_")
                             + "_" + (System.currentTimeMillis() % 10000);
@@ -112,10 +128,10 @@ public class KitsBody extends Body {
                         }
                         id = id.replace("_" + (i - 1),"_" + i++);
                     }
-                    Kit kit = new Kit(id, name, Registries.ITEM.getId(Items.WOODEN_SWORD), true);
+                    Kit kit = new Kit(id, name, BuiltInRegistries.ITEM.getKey(Items.WOODEN_SWORD), true);
                     ClientKitRegistry.register(kit);
                     ClientPlayNetworking.send(new KitSyncC2SPacket(
-                            KitSyncC2SPacket.CMD_NEW_KIT, id, name, Registries.ITEM.getId(Items.WOODEN_SWORD).getPath(), "{}", true));
+                            KitSyncC2SPacket.CMD_NEW_KIT, id, name, BuiltInRegistries.ITEM.getKey(Items.WOODEN_SWORD).getPath(), "{}", true));
                 }));
     }
 
@@ -160,8 +176,20 @@ public class KitsBody extends Body {
     // ── Input ─────────────────────────────────────────────────────────────────
 
     @Override
-    public boolean mouseClicked(double mx, double my, int btn) {
-        if (btn != 0) return super.mouseClicked(mx, my, btn);
+    public boolean mouseClicked(
+            //? if >=1.21.9 {
+            MouseButtonEvent c, boolean bl
+            //?} else
+            //double mx, double my, int btn
+    ) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int btn = c.button();
+        if (btn != 0) return super.mouseClicked(
+                //? if >=1.21.9 {
+                c,bl
+                //?} else
+                //mx, my, btn
+        );
 
         // Category tabs
         for (TabButton b : categoryButtons)
@@ -180,21 +208,48 @@ public class KitsBody extends Body {
             }
         }
 
-        return super.mouseClicked(mx, my, btn);
+        return super.mouseClicked(
+                //? if >=1.21.9 {
+                c,bl
+                //?} else
+                //mx, my, btn
+        );
     }
 
     @Override
-    public boolean mouseReleased(double mx, double my, int btn) {
+    public boolean mouseReleased(
+            //? if >=1.21.9 {
+            MouseButtonEvent c
+            //?} else
+            //double mx, double my, int btn
+    ) {
         if(scroller.mouseReleased()){
             return true;
         };
-        return super.mouseReleased(mx, my, btn);
+        return super.mouseReleased(
+                //? if >=1.21.9 {
+                c
+                //?} else
+                //mx, my, btn
+        );
     }
 
     @Override
-    public boolean mouseDragged(double mx, double my, int btn, double dx, double dy) {
+    public boolean mouseDragged(
+            //? if >=1.21.9 {
+            MouseButtonEvent c
+            //?} else
+            //double mx, double my, int btn
+            , double dx, double dy) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int btn = c.button();
         if (btn == 0) if(scroller.mouseDragged(my)) return true;
-        return super.mouseDragged(mx, my, btn, dx, dy);
+        return super.mouseDragged(
+                //? if >=1.21.9 {
+                c
+                //?} else
+                //mx, my, btn
+                , dx, dy);
     }
 
     @Override
@@ -205,15 +260,15 @@ public class KitsBody extends Body {
     }
 
     private void openKitMenu(Kit kit) {
-        MinecraftClient.getInstance().setScreen(new KitMenuPopup(parent, kit,
+        setScreen(new KitMenuPopup(parent, kit,
                 null
         ));
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
-
+    //? if <=1.21.11 {
     @Override
-    public void render(DrawContext c, int mx, int my, float d) {
+    public void render(GuiGraphics c, int mx, int my, float d) {
         c.fill(x, y, x + panelW, y + panelH, theme.body_background());
 
         renderCategories(c, mx, my);
@@ -228,11 +283,11 @@ public class KitsBody extends Body {
         super.render(c, mx, my, d);
     }
 
-    private void renderCategories(DrawContext c, int mx, int my) {
+    private void renderCategories(GuiGraphics c, int mx, int my) {
         for (TabButton b : categoryButtons) b.render(c, mx, my);
     }
 
-    private void renderKitList(DrawContext c, int mx, int my) {
+    private void renderKitList(GuiGraphics c, int mx, int my) {
         // Clip to list area so entries don't bleed outside
         c.enableScissor(kitListX, kitListY, kitListX + kitListW - SCROLLBAR_W, kitListY + kitListH);
         for (KitEntry e : kitEntries) {
@@ -243,12 +298,51 @@ public class KitsBody extends Body {
         c.disableScissor();
     }
 
-    private void renderScrollbar(DrawContext c) {
+    private void renderScrollbar(GuiGraphics c) {
         int barX = kitListX + kitListW - SCROLLBAR_W;
         scroller.render(c, barX, SCROLLBAR_W,
                 theme.panel_separator(),
                 theme.accent());
     }
+    //?} else {
+    /*@Override
+    public void extractRenderState( GuiGraphicsExtractor c, int mx, int my, float d) {
+        c.fill(x, y, x + panelW, y + panelH, theme.body_background());
+
+        renderCategories(c, mx, my);
+        // Divider between tabs and list
+        c.fill(kitListX - margin / 2, kitListY, kitListX - margin / 2 + 1, kitListY + kitListH, theme.panel_separator());
+
+        updateEntryPositions();
+        renderKitList(c, mx, my);
+        renderScrollbar(c);
+
+        // Draw category buttons AFTER scissor so they render on top
+        super.extractRenderState(c, mx, my, d);
+    }
+
+    private void renderCategories(GuiGraphicsExtractor c, int mx, int my) {
+        for (TabButton b : categoryButtons) b.render(c, mx, my);
+    }
+
+    private void renderKitList(GuiGraphicsExtractor c, int mx, int my) {
+        // Clip to list area so entries don't bleed outside
+        c.enableScissor(kitListX, kitListY, kitListX + kitListW - SCROLLBAR_W, kitListY + kitListH);
+        for (KitEntry e : kitEntries) {
+            // Only render visible entries
+            if (e.y + e.h > kitListY && e.y < kitListY + kitListH)
+                e.render(c, mx, my);
+        }
+        c.disableScissor();
+    }
+
+    private void renderScrollbar(GuiGraphicsExtractor c) {
+        int barX = kitListX + kitListW - SCROLLBAR_W;
+        scroller.render(c, barX, SCROLLBAR_W,
+                theme.panel_separator(),
+                theme.accent());
+    }
+    *///?}
 
     // ── Tick ─────────────────────────────────────────────────────────────────
 
@@ -268,10 +362,7 @@ public class KitsBody extends Body {
     }
 
     @Override
-    public Text getLabel() { return Text.of("Kits"); }
-
-    @Override
-    public boolean keyPressed(int k, int s, int m) { return false; }
+    public Component getLabel() { return Component.literal("Kits"); }
 
     // ── Filter ────────────────────────────────────────────────────────────────
 
@@ -291,7 +382,8 @@ public class KitsBody extends Body {
             return mx >= x && my >= y && mx < x + w && my < y + h;
         }
 
-        void render(DrawContext c, int mx, int my) {
+        //? if <=1.21.11 {
+        void render(GuiGraphics c, int mx, int my) {
             boolean hov = isMouseOver(mx, my);
             int bg = hov
                     ? (theme.body_button_background() & 0x00FFFFFF | 0xCC000000)
@@ -307,9 +399,13 @@ public class KitsBody extends Body {
             try {
                 Identifier iconId = kit.getIconId();
                 if (iconId != null) {
-                    Item item = Registries.ITEM.get(
-                            iconId);
-                    c.drawItem(new ItemStack(item), iconX, iconY);
+                    Item item = BuiltInRegistries.ITEM
+                            //? if >=1.21.2 {
+                            .getValue
+                            //?} else
+                            //.get
+                                    (iconId);
+                    c.renderItem(new ItemStack(item), iconX, iconY);
                 }
             } catch (Exception ignored) {}
 
@@ -318,23 +414,73 @@ public class KitsBody extends Body {
             // BUG FIX: was (h - textHeight) / 2 (absolute) instead of y + (h - textHeight) / 2
             int textY = y + (h - textHeight) / 2;
 
-            c.drawText(getTextRenderer(),
+            c.drawString(getFont(),
                     LegacyText.parse(kit.getDisplayName()),
                     textX, textY, theme.body_label(), false);
 
             // Badge (only if not showing the "All" filter — otherwise always shown)
             String badge   = kit.isCustom() ? " [Custom]" : " [Built-in]";
             int    badgeC  = kit.isCustom() ? theme.success() : theme.accent();
-            int    nameEnd = textX + getTextRenderer().getWidth(LegacyText.parse(kit.getDisplayName()));
-            c.drawText(getTextRenderer(), Text.of(badge), nameEnd, textY, badgeC, false);
+            int    nameEnd = textX + getFont().width(LegacyText.parse(kit.getDisplayName()));
+            c.drawString(getFont(), Component.nullToEmpty(badge), nameEnd, textY, badgeC, false);
 
             // Item count (right-aligned)
             String cnt  = kit.getItems().size() + " items";
-            int    cntX = x + w - margin - getTextRenderer().getWidth(cnt);
+            int    cntX = x + w - margin - getFont().width(cnt);
             if (cntX > nameEnd + margin) {
-                c.drawText(getTextRenderer(), Text.of(cnt), cntX, textY, theme.body_value(), false);
+                c.drawString(getFont(), Component.nullToEmpty(cnt), cntX, textY, theme.body_value(), false);
             }
         }
+        //?} else {
+        /*void render(GuiGraphicsExtractor c, int mx, int my) {
+            boolean hov = isMouseOver(mx, my);
+            int bg = hov
+                    ? (theme.body_button_background() & 0x00FFFFFF | 0xCC000000)
+                    : (theme.body_background()        & 0x00FFFFFF | 0xAA000000);
+            c.fill(x, y, x + w, y + h, bg);
+
+            // Subtle bottom separator
+            c.fill(x + margin, y + h - 1, x + w - margin, y + h, theme.panel_separator() & 0x44FFFFFF);
+
+            // Icon
+            int iconX = x + margin;
+            int iconY = y + (h - 16) / 2;
+            try {
+                Identifier iconId = kit.getIconId();
+                if (iconId != null) {
+                    Item item = BuiltInRegistries.ITEM
+                            //? if >=1.21.2 {
+                            /^.getValue
+                            ^///?} else
+                            .get
+                                    (iconId);
+                    c.item(new ItemStack(item), iconX, iconY);
+                }
+            } catch (Exception ignored) {}
+
+            // Name
+            int textX = iconX + 18 + margin / 2;
+            // BUG FIX: was (h - textHeight) / 2 (absolute) instead of y + (h - textHeight) / 2
+            int textY = y + (h - textHeight) / 2;
+
+            c.text(getFont(),
+                    LegacyText.parse(kit.getDisplayName()),
+                    textX, textY, theme.body_label(), false);
+
+            // Badge (only if not showing the "All" filter — otherwise always shown)
+            String badge   = kit.isCustom() ? " [Custom]" : " [Built-in]";
+            int    badgeC  = kit.isCustom() ? theme.success() : theme.accent();
+            int    nameEnd = textX + getFont().width(LegacyText.parse(kit.getDisplayName()));
+            c.text(getFont(), Component.nullToEmpty(badge), nameEnd, textY, badgeC, false);
+
+            // Item count (right-aligned)
+            String cnt  = kit.getItems().size() + " items";
+            int    cntX = x + w - margin - getFont().width(cnt);
+            if (cntX > nameEnd + margin) {
+                c.text(getFont(), Component.nullToEmpty(cnt), cntX, textY, theme.body_value(), false);
+            }
+        }
+        *///?}
     }
 
     // ── TabButton ─────────────────────────────────────────────────────────────
@@ -361,8 +507,8 @@ public class KitsBody extends Body {
         boolean isMouseOver(double mx, double my) {
             return mx >= x && my >= y && mx < x + w && my < y + h;
         }
-
-        void render(DrawContext c, int mx, int my) {
+        //? if <=1.21.11 {
+        void render(GuiGraphics c, int mx, int my) {
             boolean active = isActive.getAsBoolean();
             boolean hov    = isMouseOver(mx, my);
             int bg = active ? theme.accent()
@@ -375,11 +521,32 @@ public class KitsBody extends Body {
 
             // BUG FIX: was using (w - textW)/2 and (w - 1 - textH)/2 both relative
             // to 0 instead of to x,y
-            int textW = getTextRenderer().getWidth(label);
+            int textW = getFont().width(label);
             int textX = x + (w - textW) / 2;
             int textY = y + (h - textHeight) / 2;
-            c.drawText(getTextRenderer(), Text.of(label), textX, textY,
+            c.drawString(getFont(), Component.nullToEmpty(label), textX, textY,
                     active ? 0xFFFFFFFF : theme.body_button_foreground(), true);
         }
+        //?} else {
+        /*void render(GuiGraphicsExtractor c, int mx, int my) {
+            boolean active = isActive.getAsBoolean();
+            boolean hov    = isMouseOver(mx, my);
+            int bg = active ? theme.accent()
+                    : hov   ? (theme.body_button_background() & 0x00FFFFFF | 0xCC000000)
+                    : theme.body_button_background();
+            c.fill(x, y, x + w, y + h, bg);
+
+            // Active indicator: left bar
+            if (active) c.fill(x, y, x + 2, y + h, theme.accent_hover());
+
+            // BUG FIX: was using (w - textW)/2 and (w - 1 - textH)/2 both relative
+            // to 0 instead of to x,y
+            int textW = getFont().width(label);
+            int textX = x + (w - textW) / 2;
+            int textY = y + (h - textHeight) / 2;
+            c.text(getFont(), Component.nullToEmpty(label), textX, textY,
+                    active ? 0xFFFFFFFF : theme.body_button_foreground(), true);
+        }
+        *///?}
     }
 }

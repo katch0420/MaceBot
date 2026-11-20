@@ -1,8 +1,8 @@
 package net.katch0420.macebot.client.gui.themes;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.katch0420.macebot.main.MaceBot;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * Manages the full set of themes: built-in (code-defined, read-only) and
- * custom (one JSON file each under config/macebot/themes/), tracks which one
+ * custom (one JSON file each under config/bot/themes/), tracks which one
  * is currently active, and persists that selection across restarts.
  * <p>
  * Editing a built-in theme's colors auto-forks it into a new custom theme
@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
  */
 public class ThemeManager {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = ThemeJson.gson();
 
-    private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("macebot");
+    private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(MaceBot.MOD_ID);
     private static final Path THEMES_DIR = CONFIG_DIR.resolve("themes");
     private static final Path ACTIVE_FILE = CONFIG_DIR.resolve("active_theme.json");
     /** Legacy single-file location from before named theme management existed. */
@@ -219,20 +219,7 @@ public class ThemeManager {
 
     /** Creates an independent copy of a theme, so editing it doesn't mutate the source in place. */
     public static Theme copy(Theme source) {
-        return new Theme(
-                source.isBuiltIn(),
-                source.screen_foreground(), source.screen_background(),
-                source.header_foreground(), source.header_background(),
-                source.footer_foreground(), source.footer_background(),
-                source.sidebar_foreground(), source.sidebar_background(),
-                source.panel_separator(),
-                source.body_background(), source.body_foreground(), source.body_border(), source.display_background(),
-                source.body_key(), source.body_value(), source.body_label(), source.body_category_label(),
-                source.body_button_background(), source.body_button_foreground(), source.body_button_border(),
-                source.accent(), source.accent_hover(),
-                source.success(), source.warning(), source.danger(),
-                source.disabled_overlay(), source.focus_ring()
-        );
+        return source.copy();
     }
 
     private record StoredTheme(String name, Theme theme) {}

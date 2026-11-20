@@ -4,10 +4,19 @@ import net.katch0420.macebot.client.gui.widgets.builder.ButtonBuilder;
 import net.katch0420.macebot.client.gui.widgets.core.ButtonWidget;
 import net.katch0420.macebot.client.utils.ColorHelper;
 import net.katch0420.macebot.client.utils.RenderUtils;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.katch0420.macebot.main.utils.YarnHelpers;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.*;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+//? if >=1.21.9
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import org.jetbrains.annotations.UnknownNullability;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +25,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class Button extends ButtonWidget<Button> {
+
+    public boolean ctrl;
 
     private final Data data;
     private final DisplayData displayData;
@@ -33,36 +44,45 @@ public class Button extends ButtonWidget<Button> {
         this.displayData = new DisplayData(data);
     }
 
+    //? if >=1.21.9 {
     @Override
-    protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    public boolean mouseClicked(MouseButtonEvent c, boolean d) {
+        ctrl = c.hasControlDown();
+        return super.mouseClicked(c, d);
+    }
+    //?}
+
+    @Override
+    protected void renderWidget(
+            //? if <=1.21.11 {
+            GuiGraphics
+            //?} else
+            //GuiGraphicsExtractor
+                    context, int mouseX, int mouseY, float delta) {
         switch (data.renderType) {
             case TEXTURED -> renderTexturedButton(context, mouseX, mouseY);
             case CLASSIC -> renderClassicButton(context, mouseX, mouseY);
         }
         if(borderColor != 0) RenderUtils.drawBorder(context, x, y, width, height, active ? borderColor : ColorHelper.darken(borderColor, 0.6f));
     }
-
-    private void renderTexturedButton(DrawContext c, int mx, int my) {
-        c.fill(x, y, x + width, y + height, !active ? (held ? holdColor : (hovered ? hoverColor : backgroundColor)) : backgroundColor);
+    //? if >1.21.11 {
+    /*private void renderTexturedButton(@UnknownNullability GuiGraphicsExtractor c, int mx, int my) {
+        c.fill(x, y, x + width, y + height, active ? (held ? holdColor : (hovered ? hoverColor : backgroundColor)) : backgroundColor);
 
         Identifier displayTexture = getDisplayTexture();
         if (displayTexture != null) {
             RenderUtils.drawTexture(c, displayTexture, x, y, 0, 0, width, height, width, height);
         }
 
-        Text label = getDisplayLabel();
+        Component label = getDisplayLabel();
         if (label != null) {
             if (data.captionMode == CaptionMode.BELOW_TEXTURE) {
                 // Render as a real caption under the icon instead of a tooltip.
                 int textY = y + height + 2;
-                c.drawCenteredTextWithShadow(textRenderer, label, x + width / 2, textY, foregroundColor);
+                c.centeredText(textRenderer, label, x + width / 2, textY, foregroundColor);
             } else if (hovered) {
-                // FIX: this used to call drawTooltip() unconditionally, every
-                // single frame, regardless of whether the mouse was anywhere
-                // near the button - so a tooltip would hover at the cursor
-                // permanently once any textured button existed. Tooltip mode
-                // now only shows while actually hovering this button.
-                c.drawTooltip(textRenderer, label, mx, my);
+                List<ClientTooltipComponent> cmp = List.of(ClientTooltipComponent.create(label.getVisualOrderText()));
+                c.tooltip(textRenderer, cmp, mx, my, DefaultTooltipPositioner.INSTANCE, null);
             }
         }
 
@@ -71,31 +91,81 @@ public class Button extends ButtonWidget<Button> {
         }
     }
 
-    private void renderClassicButton(DrawContext c, int mx, int my) {
-        c.fill(x, y, x + width, y + height, !active ? (held ? holdColor : (hovered ? hoverColor : backgroundColor)) : backgroundColor);
-        Text label = getDisplayLabel();
+    private void renderClassicButton(@UnknownNullability GuiGraphicsExtractor c, int mx, int my) {
+        c.fill(x, y, x + width, y + height, active ? (held ? holdColor : (hovered ? hoverColor : backgroundColor)) : backgroundColor);
+        Component label = getDisplayLabel();
         if (label != null) {
-            int textY = y + (height - textRenderer.fontHeight) / 2;
-            c.drawCenteredTextWithShadow(textRenderer, label, x + width / 2, textY, active ? foregroundColor : ColorHelper.darken(foregroundColor, 0.6f));
+            int textY = y + (height - textRenderer.lineHeight) / 2;
+            c.centeredText(textRenderer, label, x + width / 2, textY, active ? foregroundColor : ColorHelper.darken(foregroundColor, 0.6f));
         }
         if (!active) {
             drawDisabledOverlay(c);
         }
     }
 
-    /**
-     * FIX: the previous disabled overlay computed
-     * {@code (int)(backgroundColor * 0.6 + 0xFF000000)} - multiplying a
-     * packed ARGB int as if it were a plain number instead of darkening it
-     * channel-by-channel. That produces a garbage/wrong-looking color
-     * (often a wildly different hue, not a darkened version of the button).
-     * A flat semi-transparent black overlay reads correctly as "disabled"
-     * over any background color and matches the classic-button style below.
-     */
-    private void drawDisabledOverlay(DrawContext c) {
+    private void drawDisabledOverlay(GuiGraphicsExtractor c) {
         c.fill(x, y, x + width, y + height, 0x80101010);
     }
+    *///?}
+    //? if <=1.21.11 {
+    private void renderTexturedButton(@UnknownNullability GuiGraphics c, int mx, int my) {
+        c.fill(x, y, x + width, y + height, active ? (held ? holdColor : (hovered ? hoverColor : backgroundColor)) : backgroundColor);
 
+        Identifier displayTexture = getDisplayTexture();
+        if (displayTexture != null) {
+            RenderUtils.drawTexture(c, displayTexture, x, y, 0, 0, width, height, width, height);
+        }
+
+        Component label = getDisplayLabel();
+        if (label != null) {
+            if (data.captionMode == CaptionMode.BELOW_TEXTURE) {
+                // Render as a real caption under the icon instead of a tooltip.
+                int textY = y + height + 2;
+                c.drawCenteredString(textRenderer, label, x + width / 2, textY, foregroundColor);
+            } else if (hovered) {
+                //? if >=1.21.6 {
+                List<ClientTooltipComponent> cmp = List.of(ClientTooltipComponent.create(label.getVisualOrderText()));
+                c.renderTooltip(textRenderer, cmp, mx, my, DefaultTooltipPositioner.INSTANCE, null);
+                //?} else
+                //c.renderTooltip(textRenderer, label, mx, my);
+            }
+        }
+
+        if (!active) {
+            drawDisabledOverlay(c);
+        }
+    }
+
+    private void renderClassicButton(@UnknownNullability GuiGraphics c, int mx, int my) {
+        c.fill(x, y, x + width, y + height, active ? (held ? holdColor : (hovered ? hoverColor : backgroundColor)) : backgroundColor);
+        Component label = getDisplayLabel();
+        if (label != null) {
+            float maxWidth = Math.max(1, width - 4);
+            float maxHeight = Math.max(1, height - 2);
+            float scale = Math.min(1.0f, Math.min(maxWidth / Math.max(1.0f, textRenderer.width(label)),
+                    maxHeight / textRenderer.lineHeight));
+            YarnHelpers.pushMatrix(c);
+            //? if >=1.21.6 {
+            c.pose().translate(x + width / 2.0f, y + height / 2.0f);
+            //?} else
+            //c.pose().translate(x + width / 2.0f, y + height / 2.0f, 0.0f);
+            //? if >=1.21.6 {
+            c.pose().scale(scale, scale);
+            //?} else
+            //c.pose().scale(scale, scale, 1.0f);
+            c.drawCenteredString(textRenderer, label, 0, -textRenderer.lineHeight / 2,
+                    active ? foregroundColor : ColorHelper.darken(foregroundColor, 0.6f));
+            YarnHelpers.popMatrix(c);
+        }
+        if (!active) {
+            drawDisabledOverlay(c);
+        }
+    }
+
+    private void drawDisabledOverlay(GuiGraphics c) {
+        c.fill(x, y, x + width, y + height, 0x80101010);
+    }
+    //?}
     private Identifier getDisplayTexture() {
         if (data.functionType == null) return null;
         return switch (data.functionType) {
@@ -108,13 +178,13 @@ public class Button extends ButtonWidget<Button> {
         };
     }
 
-    private Text getDisplayLabel() {
+    private Component getDisplayLabel() {
         if (data.functionType == null) return null;
         return switch (data.functionType) {
             case TOGGLE -> toggle ? displayData.toggleLabel1 : displayData.toggleLabel2;
             case CLICK -> held ? displayData.heldLabel : (hovered ? displayData.hoverLabel : displayData.baseLabel);
             case SHUFFLE -> {
-                List<Text> labels = displayData.shuffleLabel;
+                List<Component> labels = displayData.shuffleLabel;
                 yield (labels == null || labels.isEmpty()) ? null : labels.get(shuffleLabelIndex);
             }
         };
@@ -125,13 +195,13 @@ public class Button extends ButtonWidget<Button> {
      * the base label) - used e.g. by "click to cycle difficulty" buttons that
      * rewrite their own caption after being pressed.
      */
-    public void setLabelIfClickButton(Text label) {
+    public void setLabelIfClickButton(Component label) {
         if (displayData.hoverLabel == displayData.baseLabel) displayData.hoverLabel = label;
         if (displayData.heldLabel == displayData.baseLabel) displayData.heldLabel = label;
         displayData.baseLabel = label;
     }
 
-    public void setSingleLabel(Text label){
+    public void setSingleLabel(Component label){
         displayData.hoverLabel = label;
         displayData.heldLabel = label;
         displayData.baseLabel = label;
@@ -172,7 +242,7 @@ public class Button extends ButtonWidget<Button> {
             case TOGGLE -> toggle = !toggle;
             case SHUFFLE -> {
                 List<Identifier> textures = displayData.shuffleTextures;
-                List<Text> labels = displayData.shuffleLabel;
+                List<Component> labels = displayData.shuffleLabel;
 
                 if (textures != null && !textures.isEmpty()) {
                     shuffleTextureIndex = (shuffleTextureIndex >= textures.size() - 1) ? 0 : shuffleTextureIndex + 1;
@@ -200,7 +270,7 @@ public class Button extends ButtonWidget<Button> {
         protected boolean toggled = true;
 
         protected HashMap<Integer, Identifier> textures = new HashMap<>();
-        protected HashMap<Integer, Text> labels = new HashMap<>();
+        protected HashMap<Integer, Component> labels = new HashMap<>();
 
         protected int tIdx = 0;
         protected int lIdx = 0;
@@ -239,28 +309,28 @@ public class Button extends ButtonWidget<Button> {
             return this;
         }
 
-        public Builder toggleLabel(Text label) {
+        public Builder toggleLabel(Component label) {
             labels.put(lIdx++, label);
             functionType = FunctionType.TOGGLE;
             return this;
         }
 
-        public Builder baseLabel(Text label) {
+        public Builder baseLabel(Component label) {
             labels.put(2, label);
             return this;
         }
 
-        public Builder heldLabel(Text label) {
+        public Builder heldLabel(Component label) {
             labels.put(3, label);
             return this;
         }
 
-        public Builder hoverLabel(Text label) {
+        public Builder hoverLabel(Component label) {
             labels.put(4, label);
             return this;
         }
 
-        public Builder shuffleLabel(Text label) {
+        public Builder shuffleLabel(Component label) {
             labels.put(-(sLabIdx++), label);
             functionType = FunctionType.SHUFFLE;
             return this;
@@ -331,8 +401,8 @@ public class Button extends ButtonWidget<Button> {
     /** How a TEXTURED button shows its label, if any. */
     public enum CaptionMode {TOOLTIP, BELOW_TEXTURE}
 
-    public record Data(FunctionType functionType, RenderType renderType, CaptionMode captionMode, boolean rightClickCycles, HashMap<Integer, Identifier> textures, HashMap<Integer, Text> labels) {
-        public Data(FunctionType functionType, RenderType renderType, CaptionMode captionMode, boolean rightClickCycles, HashMap<Integer, Identifier> textures, HashMap<Integer, Text> labels) {
+    public record Data(FunctionType functionType, RenderType renderType, CaptionMode captionMode, boolean rightClickCycles, HashMap<Integer, Identifier> textures, HashMap<Integer, Component> labels) {
+        public Data(FunctionType functionType, RenderType renderType, CaptionMode captionMode, boolean rightClickCycles, HashMap<Integer, Identifier> textures, HashMap<Integer, Component> labels) {
             this.functionType = functionType;
             this.renderType = renderType;
             this.captionMode = captionMode != null ? captionMode : CaptionMode.TOOLTIP;
@@ -350,12 +420,12 @@ public class Button extends ButtonWidget<Button> {
         public Identifier toggleTexture2;
         public List<Identifier> shuffleTextures;
 
-        public Text baseLabel;
-        public Text heldLabel;
-        public Text hoverLabel;
-        public Text toggleLabel1;
-        public Text toggleLabel2;
-        public List<Text> shuffleLabel;
+        public Component baseLabel;
+        public Component heldLabel;
+        public Component hoverLabel;
+        public Component toggleLabel1;
+        public Component toggleLabel2;
+        public List<Component> shuffleLabel;
 
         public DisplayData(Data data) {
             this.shuffleTextures = new ArrayList<>();
@@ -382,7 +452,7 @@ public class Button extends ButtonWidget<Button> {
             });
         }
 
-        public DisplayData setLabel(Text label) {
+        public DisplayData setLabel(Component label) {
             if(heldLabel == baseLabel) heldLabel = label;
             if(hoverLabel == baseLabel) hoverLabel = label;
             this.baseLabel = label;

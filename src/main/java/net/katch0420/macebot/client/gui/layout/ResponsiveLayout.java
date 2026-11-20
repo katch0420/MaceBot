@@ -1,15 +1,5 @@
 package net.katch0420.macebot.client.gui.layout;
 
-/**
- * Small helper that turns the *actual* available pixel area (which already
- * reflects Minecraft's current GUI scale + the player's real resolution)
- * into a continuous scale factor, instead of bucketing into a few fixed
- * "gui scale 2 / 3 / 4" presets like the old code did.
- *
- * This means margins, button sizes and panel proportions shrink/grow
- * smoothly as the player resizes their window or changes GUI scale,
- * rather than jumping between a few hand-tuned layouts.
- */
 public final class ResponsiveLayout {
 
     /** Width (in already-scaled GUI pixels) the layout was designed at. */

@@ -1,8 +1,8 @@
 package net.katch0420.macebot.client.gui.bodies;
 
 public class Bodies {
-    public static Body CONTROLLER = new ControllerBody();
-    public static Body KITS = new KitsBody();
-    public static Body SETTINGS = new SettingsBody();
-    public static Body ABOUT = new AboutBody();
+    public static ControllerBody CONTROLLER = new ControllerBody();
+    public static KitsBody KITS = new KitsBody();
+    public static SettingsBody SETTINGS = new SettingsBody();
+    public static AboutBody ABOUT = new AboutBody();
 }

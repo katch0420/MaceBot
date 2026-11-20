@@ -1,21 +1,24 @@
 package net.katch0420.macebot.main.kits.main;
 
+import net.katch0420.macebot.main.MaceBot;
 import net.katch0420.macebot.main.messenger.Logger;
 import net.katch0420.macebot.main.utils.YarnHelpers;
-import net.minecraft.component.ComponentMap;
-import net.minecraft.component.ComponentMapImpl;
-import net.minecraft.component.DataComponentTypes;
-//? if <=1.21.4
-import net.minecraft.component.type.UnbreakableComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.*;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.Unit;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+//? if <1.21.5
+//import net.minecraft.world.item.component.Unbreakable;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
 
 import static net.katch0420.macebot.main.MaceBot.server;
 
@@ -23,7 +26,7 @@ import java.util.Optional;
 
 public class KitStack {
     public ItemData itemData;
-    public Object slot;
+    public int slot;
     public int count;
     public KitStack(ItemData itemData, int slot, int count) {
         this.itemData = itemData;
@@ -56,47 +59,51 @@ public class KitStack {
     }
 
     public ItemStack toStack() {
-        Item item = Registries.ITEM.get(itemData.id);
+        Item item = BuiltInRegistries.ITEM
+                //? if >=1.21.2 {
+                .getValue
+                //?} else
+                //.get
+                        (itemData.id);
         ItemStack stack = new ItemStack(item, count);
-        stack.applyComponentsFrom(itemData.components);
+        stack.applyComponents(itemData.components);
         return stack;
     }
 
-    public static Optional<RegistryEntry.Reference<Enchantment>> getEnchantmentRegistry(RegistryKey<Enchantment> key) {
-        return YarnHelpers.getRegistry(server.getRegistryManager(),RegistryKeys.ENCHANTMENT)
-                .getEntry(key.getValue());
+    public static Holder.Reference<Enchantment> getEnchantmentRegistry(ResourceKey<Enchantment> key) {
+        return MaceBot.server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(key);
     }
 
     public static void addUnbreakingEnchant(ItemStack stack, int lvl) {
         if (stack.isEmpty()) return;
-        getEnchantmentRegistry(Enchantments.UNBREAKING).ifPresent(e -> stack.addEnchantment(e, lvl));
+        stack.enchant(getEnchantmentRegistry(Enchantments.UNBREAKING), lvl);
     }
 
     public static void addMendingEnchant(ItemStack stack) {
         if (stack.isEmpty()) return;
-        getEnchantmentRegistry(Enchantments.MENDING).ifPresent(e -> stack.addEnchantment(e, 1));
+        stack.enchant(getEnchantmentRegistry(Enchantments.MENDING), 1);
     }
 
     public static void addUnbreakableComponent(ItemStack stack) {
         if (stack.isEmpty()) return;
-        stack.applyComponentsFrom(
-                ComponentMap.builder().add(DataComponentTypes.UNBREAKABLE,
-                        //? if >=1.21.5 {
-                        /*Unit.INSTANCE
-                        *///?} else
-                        new UnbreakableComponent(true)
+        stack.applyComponents(
+                DataComponentMap.builder().set(DataComponents.UNBREAKABLE,
+                        //? >=1.21.5 {
+                        Unit.INSTANCE
+                        //?} else
+                        //new Unbreakable(true)
                 ).build()
         );
     }
 
     public static KitStack fromStack(ItemStack stack, int slot) {
-        if ((stack == null) || (stack.isEmpty() && !stack.isOf(Items.AIR))) {
+        if ((stack == null) || (stack.isEmpty() && !stack.is(Items.AIR))) {
             return null;
         }
 
         ItemData itemData = ItemData.builder()
                 .item(stack.getItem())
-                .components(new ComponentMapImpl(stack.getComponents()))
+                .components(new PatchedDataComponentMap(stack.getComponents()))
                 .build();
 
         return new KitStack(itemData, slot, stack.getCount());

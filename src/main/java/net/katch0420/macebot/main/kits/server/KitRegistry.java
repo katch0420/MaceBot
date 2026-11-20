@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.katch0420.macebot.main.MaceBot;
 import net.katch0420.macebot.main.kits.main.Kit;
-import net.katch0420.macebot.main.networking.packets.s2c.KitSyncS2CPacket;
+import net.katch0420.macebot.main.network.packets.s2c.KitSyncS2CPacket;
 
 import java.util.*;
 
@@ -13,16 +13,10 @@ public class KitRegistry {
 
     public static void registerTickEvent() {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            if (server.getTicks() % 300 == 0) {
-                server.getPlayerManager().getPlayerList().forEach(p -> {
-                    ServerPlayNetworking.send(p, KitSyncS2CPacket.reset());
-                    KITS.values().forEach(k -> {
-                        ServerPlayNetworking.send(p, KitSyncS2CPacket.kitData(k));
-                        ServerPlayNetworking.send(p, KitSyncS2CPacket.kitItems(k));
-                    });
-                });
+            if (server.getTickCount() % 300 == 0) {
+                KitRegistry.syncAllKitsToClients();
             }
-            if (server.getTicks() % 3000 == 0) {
+            if (server.getTickCount() % 3000 == 0) {
                 KITS.values().forEach(k -> { if (k.isCustom()) CustomKitManager.saveKit(k); });
             }
         });
@@ -63,24 +57,24 @@ public class KitRegistry {
         if (kit.isCustom()) CustomKitManager.deleteKit(id);
         KITS.remove(id);
         // Tell clients to remove it
-        MaceBot.server.getPlayerManager().getPlayerList().forEach(p ->
+        MaceBot.server.getPlayerList().getPlayers().forEach(p ->
                 ServerPlayNetworking.send(p, KitSyncS2CPacket.deleteKit(id)));
     }
 
-    public static Iterable<String> getAllIds() { return new HashSet<>(KITS.keySet()); }
+    public static HashSet<String> getAllIds() { return new HashSet<>(KITS.keySet()); }
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private static void syncToClients(Kit kit) {
         if (MaceBot.server == null) return;
-        MaceBot.server.getPlayerManager().getPlayerList().forEach(p -> {
+        MaceBot.server.getPlayerList().getPlayers().forEach(p -> {
             ServerPlayNetworking.send(p, KitSyncS2CPacket.kitData(kit));
             ServerPlayNetworking.send(p, KitSyncS2CPacket.kitItems(kit));
         });
     }
 
     public static void syncAllKitsToClients(){
-        MaceBot.server.getPlayerManager().getPlayerList().forEach(p -> {
+        MaceBot.server.getPlayerList().getPlayers().forEach(p -> {
             ServerPlayNetworking.send(p, KitSyncS2CPacket.reset());
             KITS.values().forEach(k -> {
                 ServerPlayNetworking.send(p, KitSyncS2CPacket.kitData(k));

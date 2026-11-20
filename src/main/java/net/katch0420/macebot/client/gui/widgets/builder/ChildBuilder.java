@@ -4,9 +4,9 @@ import net.katch0420.macebot.client.gui.widgets.core.ParentWidget;
 
 public class ChildBuilder<T extends ChildBuilder<T>> extends Builder<T>{
 
-    protected ParentWidget parent;
+    protected ParentWidget<?> parent;
     @SuppressWarnings("unchecked")
-    public T parent(ParentWidget parent){
+    public T parent(ParentWidget<?> parent){
         System.out.println("did someone call me and gave: " + parent);
         this.parent = parent;
         return (T) this;

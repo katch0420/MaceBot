@@ -2,9 +2,15 @@ package net.katch0420.macebot.client.gui.bodies;
 
 import net.katch0420.macebot.client.gui.themes.*;
 import net.katch0420.macebot.client.gui.widgets.buttons.Button;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+//? if <=1.21.11 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
+//? if >=1.21.9
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.screens.Screen;
 
 import java.util.*;
 
@@ -41,15 +47,15 @@ public class ThemeEditorBody extends Body {
     private long statusExpiryMs;
 
     @Override
-    public Text getLabel() {
-        return Text.of("Theme Editor");
+    public Component getLabel() {
+        return Component.literal("Theme Editor");
     }
 
     @Override
     public void init() {
         super.init();
         margin = s(6, 4);
-        textHeight = getTextRenderer().fontHeight;
+        textHeight = getFont().lineHeight;
 
         panelX = x;
         panelY = y;
@@ -94,7 +100,7 @@ public class ThemeEditorBody extends Body {
         newButton = Button.builder()
                 .position(browserX, browserY)
                 .size(btnW, browserHeaderHeight)
-                .baseLabel(Text.of("+ New"))
+                .baseLabel(Component.nullToEmpty("+ New"))
                 .backgroundColor(theme.accent())
                 .foregroundColor(0xFFFFFFFF)
                 .borderColor(-1)
@@ -107,7 +113,7 @@ public class ThemeEditorBody extends Body {
         importButton = Button.builder()
                 .position(browserX + btnW + margin, browserY)
                 .size(btnW, browserHeaderHeight)
-                .baseLabel(Text.of("Import"))
+                .baseLabel(Component.nullToEmpty("Import"))
                 .backgroundColor(theme.body_button_background())
                 .foregroundColor(theme.body_button_foreground())
                 .borderColor(-1)
@@ -133,7 +139,7 @@ public class ThemeEditorBody extends Body {
 
             if (!isActive) {
                 Button use = smallButton(bx - profileBtnWidth - margin / 2, rowY, "", theme.body_button_background(), () -> useTheme(profile));
-                use.getDisplayData().setLabel(Text.of("Use"));
+                use.getDisplayData().setLabel(Component.nullToEmpty("Use"));
                 profileButtons.add(use);
             }
             rowY += profileRowHeight;
@@ -145,7 +151,7 @@ public class ThemeEditorBody extends Body {
         return Button.builder()
                 .position(x, y + (profileRowHeight - profileBtnHeight) / 2)
                 .size(profileBtnWidth, profileBtnHeight)
-                .baseLabel(Text.of(label))
+                .baseLabel(Component.nullToEmpty(label))
                 .backgroundColor(bg)
                 .foregroundColor(0xFFFFFFFF)
                 .borderColor(-1)
@@ -169,14 +175,21 @@ public class ThemeEditorBody extends Body {
 
     private void exportTheme(ThemeProfile profile) {
         String code = ThemeCodec.encode(profile.name(), profile.theme());
-        MinecraftClient.getInstance().keyboard.setClipboard(code);
+        Minecraft.getInstance().keyboardHandler.setClipboard(code);
         showStatus("Copied \"" + profile.name() + "\" to clipboard");
+    }
+
+    private void setScreen(Screen screen){
+        //? if <26.2 {
+        Minecraft.getInstance().setScreen(screen);
+        //?} else
+        //Minecraft.getInstance().setScreenAndShow(screen);
     }
 
     private void promptNewTheme() {
         String suggested = ThemeManager.uniqueName(ThemeManager.activeName + " Copy");
-        MinecraftClient.getInstance().setScreen(new ThemeNamePromptScreen(
-                parentScreen, Text.literal("New Theme"), suggested,
+        setScreen(new ThemeNamePromptScreen(
+                parentScreen, Component.literal("New Theme"), suggested,
                 name -> {
                     String unique = ThemeManager.uniqueName(name);
                     ThemeProfile created = new ThemeProfile(unique, false, ThemeManager.copy(Themes.CURRENT));
@@ -188,15 +201,15 @@ public class ThemeEditorBody extends Body {
     }
 
     private void importFromClipboard() {
-        String clipboard = MinecraftClient.getInstance().keyboard.getClipboard();
+        String clipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
         var decoded = ThemeCodec.decode(clipboard);
         if (decoded.isEmpty()) {
             showStatus("Clipboard doesn't contain a valid theme code");
             return;
         }
         ThemeProfile imported = decoded.get();
-        MinecraftClient.getInstance().setScreen(new ThemeNamePromptScreen(
-                parentScreen, Text.literal("Import Theme"), ThemeManager.uniqueName(imported.name()),
+        setScreen(new ThemeNamePromptScreen(
+                parentScreen, Component.literal("Import Theme"), ThemeManager.uniqueName(imported.name()),
                 name -> {
                     String unique = ThemeManager.uniqueName(name);
                     ThemeProfile saved = new ThemeProfile(unique, false, imported.theme());
@@ -271,21 +284,33 @@ public class ThemeEditorBody extends Body {
      * Header rows are plain text, not Buttons - hit-tested here instead of via the widget tree.
      */
     @Override
-    public boolean mouseClicked(double mx, double my, int btn) {
+    public boolean mouseClicked(
+            //? if >=1.21.9 {
+            MouseButtonEvent c, boolean bl
+            //?} else
+            //double mx, double my, int btn
+    ) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int btn = c.button();
         if (btn == 0 && mx >= treeX && mx <= treeX + treeWidth && my >= treeY && my <= treeY + treeHeight) {
             for (TreeRow row : treeRows) {
                 if (!row.isHeader) continue;
                 int rowTop = treeY + row.index * rowHeight - treeScroll;
                 if (rowTop + rowHeight < treeY || rowTop > treeY + treeHeight) continue;
                 int depthIndent = row.depth * indentPerDepth;
-                int textWidth = getTextRenderer().getWidth(headerLabel(row));
+                int textWidth = getFont().width(headerLabel(row));
                 if (mx >= treeX + depthIndent && mx <= treeX + depthIndent + textWidth + 6 && my >= rowTop && my <= rowTop + rowHeight) {
                     toggleExpand(row.path);
                     return true;
                 }
             }
         }
-        return super.mouseClicked(mx, my, btn);
+        return super.mouseClicked(
+                //? if >=1.21.9 {
+                c,bl
+                //?} else
+                //mx, my, btn
+        );
     }
 
     private String headerLabel(TreeRow row) {
@@ -316,8 +341,8 @@ public class ThemeEditorBody extends Body {
 
         int initial = field.getter().getAsInt();
         ThemeGroup.ColorField finalField = field;
-        MinecraftClient.getInstance().setScreen(new ColorPickerScreen(
-                parentScreen, Text.literal(field.name()), initial,
+        setScreen(new ColorPickerScreen(
+                parentScreen, Component.literal(field.name()), initial,
                 finalField.setter(), ThemeManager::saveActive
         ));
     }
@@ -356,9 +381,93 @@ public class ThemeEditorBody extends Body {
     // ------------------------------------------------------------------
     // Render
     // ------------------------------------------------------------------
+    //? if >1.21.11 {
+    /*@Override
+    public void extractRenderState( GuiGraphicsExtractor c, int mx, int my, float d) {
+        c.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, theme.body_background());
 
+        // Browser border
+        c.fill(browserX - 2, browserY - 2, browserX + browserWidth + 2, browserY + browserHeight + 2, 0);
+        drawBorder(c, browserX - 2, browserY - 2, browserWidth + 4, browserHeight + 4);
+        renderBrowserText(c);
+
+        // Tree border
+        drawBorder(c, treeX - 2, treeY - 2, treeWidth + 4, treeHeight + 4);
+
+        newButton.extractRenderState(c, mx, my, d);
+        importButton.extractRenderState(c, mx, my, d);
+        for (Button b : profileButtons) b.extractRenderState(c, mx, my, d);
+
+        c.enableScissor(treeX, treeY, treeX + treeWidth, treeY + treeHeight);
+        renderTreeText(c);
+        for (Button b : treeButtons) {
+            if (b.isVisible()) b.extractRenderState(c, mx, my, d);
+        }
+        c.disableScissor();
+
+        renderTreeScrollbar(c);
+        renderStatusMessage(c);
+    }
+
+    private void drawBorder(GuiGraphicsExtractor c, int x, int y, int w, int h) {
+        c.fill(x, y, x + w, y + 1, theme.body_border());
+        c.fill(x, y + h - 1, x + w, y + h, theme.body_border());
+        c.fill(x, y, x + 1, y + h, theme.body_border());
+        c.fill(x + w - 1, y, x + w, y + h, theme.body_border());
+    }
+
+    private void renderBrowserText(GuiGraphicsExtractor c) {
+        int rowY = browserY + browserHeaderHeight + margin;
+        for (ThemeProfile profile : ThemeManager.allThemes()) {
+            boolean isActive = profile.name().equals(ThemeManager.activeName) && profile.builtin() == ThemeManager.activeIsBuiltin;
+            int textY = rowY + (profileRowHeight - textHeight) / 2;
+            int color = isActive ? theme.accent() : theme.body_value();
+            String label = (isActive ? "\u25CF " : "") + profile.name();
+            c.text(getFont(), Component.nullToEmpty(label), browserX, textY, color, true);
+            rowY += profileRowHeight;
+        }
+    }
+
+    private void renderTreeText(GuiGraphicsExtractor c) {
+        for (TreeRow row : treeRows) {
+            int rowTop = treeY + row.index * rowHeight - treeScroll;
+            if (rowTop + rowHeight < treeY || rowTop > treeY + treeHeight) continue;
+            int depthIndent = row.depth * indentPerDepth;
+            int textY = rowTop + (rowHeight - textHeight) / 2;
+
+            if (row.isHeader) {
+                c.text(getFont(), Component.nullToEmpty(headerLabel(row)), treeX + depthIndent, textY, theme.body_label(), true);
+            } else {
+                c.text(getFont(), Component.nullToEmpty(row.field.name()), treeX + depthIndent, textY, theme.body_value(), true);
+            }
+            if (row.index > 0) {
+                c.horizontalLine(treeX, treeX + treeWidth, rowTop, theme.panel_separator() & 0x22FFFFFF);
+            }
+        }
+    }
+
+    private void renderTreeScrollbar(GuiGraphicsExtractor c) {
+        if (treeMaxScroll <= 0) return;
+        int trackX = treeX + treeWidth - 3;
+        c.fill(trackX, treeY, trackX + 2, treeY + treeHeight, theme.panel_separator());
+        int thumbH = Math.max(10, treeHeight * treeHeight / Math.max(1, treeHeight + treeMaxScroll));
+        int thumbY = treeY + (treeHeight - thumbH) * treeScroll / Math.max(1, treeMaxScroll);
+        c.fill(trackX, thumbY, trackX + 2, thumbY + thumbH, theme.accent());
+    }
+
+    private void renderStatusMessage(GuiGraphicsExtractor c) {
+        if (statusMessage == null || System.currentTimeMillis() > statusExpiryMs) return;
+        int tw = getFont().width(statusMessage);
+        int sx = panelX + (panelWidth - tw) / 2;
+        int sy = panelY + panelHeight - textHeight - margin;
+        c.fill(sx - 6, sy - 2, sx + tw + 6, sy + textHeight + 2, 0xCC101010);
+        c.text(getFont(), Component.nullToEmpty(statusMessage), sx, sy, theme.accent(), true);
+    }
+
+    *///?}
+    //? if <=1.21.11 {
     @Override
-    public void render(DrawContext c, int mx, int my, float d) {
+    public void render(GuiGraphics c, int mx, int my, float d) {
         c.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, theme.body_background());
 
         // Browser border
@@ -384,26 +493,26 @@ public class ThemeEditorBody extends Body {
         renderStatusMessage(c);
     }
 
-    private void drawBorder(DrawContext c, int x, int y, int w, int h) {
+    private void drawBorder(GuiGraphics c, int x, int y, int w, int h) {
         c.fill(x, y, x + w, y + 1, theme.body_border());
         c.fill(x, y + h - 1, x + w, y + h, theme.body_border());
         c.fill(x, y, x + 1, y + h, theme.body_border());
         c.fill(x + w - 1, y, x + w, y + h, theme.body_border());
     }
 
-    private void renderBrowserText(DrawContext c) {
+    private void renderBrowserText(GuiGraphics c) {
         int rowY = browserY + browserHeaderHeight + margin;
         for (ThemeProfile profile : ThemeManager.allThemes()) {
             boolean isActive = profile.name().equals(ThemeManager.activeName) && profile.builtin() == ThemeManager.activeIsBuiltin;
             int textY = rowY + (profileRowHeight - textHeight) / 2;
             int color = isActive ? theme.accent() : theme.body_value();
             String label = (isActive ? "\u25CF " : "") + profile.name();
-            c.drawText(getTextRenderer(), Text.of(label), browserX, textY, color, true);
+            c.drawString(getFont(), Component.nullToEmpty(label), browserX, textY, color, true);
             rowY += profileRowHeight;
         }
     }
 
-    private void renderTreeText(DrawContext c) {
+    private void renderTreeText(GuiGraphics c) {
         for (TreeRow row : treeRows) {
             int rowTop = treeY + row.index * rowHeight - treeScroll;
             if (rowTop + rowHeight < treeY || rowTop > treeY + treeHeight) continue;
@@ -411,17 +520,17 @@ public class ThemeEditorBody extends Body {
             int textY = rowTop + (rowHeight - textHeight) / 2;
 
             if (row.isHeader) {
-                c.drawText(getTextRenderer(), Text.of(headerLabel(row)), treeX + depthIndent, textY, theme.body_label(), true);
+                c.drawString(getFont(), Component.nullToEmpty(headerLabel(row)), treeX + depthIndent, textY, theme.body_label(), true);
             } else {
-                c.drawText(getTextRenderer(), Text.of(row.field.name()), treeX + depthIndent, textY, theme.body_value(), true);
+                c.drawString(getFont(), Component.nullToEmpty(row.field.name()), treeX + depthIndent, textY, theme.body_value(), true);
             }
             if (row.index > 0) {
-                c.drawHorizontalLine(treeX, treeX + treeWidth, rowTop, theme.panel_separator() & 0x22FFFFFF);
+                c.hLine(treeX, treeX + treeWidth, rowTop, theme.panel_separator() & 0x22FFFFFF);
             }
         }
     }
 
-    private void renderTreeScrollbar(DrawContext c) {
+    private void renderTreeScrollbar(GuiGraphics c) {
         if (treeMaxScroll <= 0) return;
         int trackX = treeX + treeWidth - 3;
         c.fill(trackX, treeY, trackX + 2, treeY + treeHeight, theme.panel_separator());
@@ -430,19 +539,15 @@ public class ThemeEditorBody extends Body {
         c.fill(trackX, thumbY, trackX + 2, thumbY + thumbH, theme.accent());
     }
 
-    private void renderStatusMessage(DrawContext c) {
+    private void renderStatusMessage(GuiGraphics c) {
         if (statusMessage == null || System.currentTimeMillis() > statusExpiryMs) return;
-        int tw = getTextRenderer().getWidth(statusMessage);
+        int tw = getFont().width(statusMessage);
         int sx = panelX + (panelWidth - tw) / 2;
         int sy = panelY + panelHeight - textHeight - margin;
         c.fill(sx - 6, sy - 2, sx + tw + 6, sy + textHeight + 2, 0xCC101010);
-        c.drawText(getTextRenderer(), Text.of(statusMessage), sx, sy, theme.accent(), true);
+        c.drawString(getFont(), Component.nullToEmpty(statusMessage), sx, sy, theme.accent(), true);
     }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return false;
-    }
+    //?}
 
     private static final class TreeRow {
         final boolean isHeader;

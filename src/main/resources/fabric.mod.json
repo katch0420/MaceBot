@@ -25,12 +25,8 @@
 	"mixins": [
 		"macebot.mixins.json"
 	],
-    "accessWidener": "macebot.accesswidener",
 	"depends": {
-		"fabricloader": ">=0.17.0",
-        "minecraft": "${minecraft}"
-	},
-	"suggests": {
-		"another-mod": "*"
+		"fabricloader": "${loader}",
+		"minecraft": "${minecraft}"
 	}
 }

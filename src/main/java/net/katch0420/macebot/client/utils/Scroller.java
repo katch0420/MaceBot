@@ -1,6 +1,9 @@
 package net.katch0420.macebot.client.utils;
 
-import net.minecraft.client.gui.DrawContext;
+//? if <=1.21.11 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Reusable vertical scrollbar + scroll-offset tracker.
@@ -150,7 +153,12 @@ public class Scroller {
      * @param trackColor ARGB track color
      * @param thumbColor ARGB thumb color
      */
-    public void render(DrawContext c, int barX, int barW, int trackColor, int thumbColor) {
+    public void render(
+            //? if <=1.21.11 {
+            GuiGraphics c
+            //?} else
+            //GuiGraphicsExtractor c
+            , int barX, int barW, int trackColor, int thumbColor) {
         if (!needsScrollbar()) return;
         c.fill(barX, listY, barX + barW, listY + listH, trackColor);
         c.fill(barX, listY + thumbY, barX + barW, listY + thumbY + thumbH, thumbColor);

@@ -14,7 +14,8 @@ public class Themes {
             0xFF606060, 0xFFCCCCCC, 0xFF707070,
             0xFF707070, 0xFF808080,
             0xFF3CB371, 0xFFD9A441, 0xFFD9534F,
-            0x80000000, 0xFFFFFFFF
+            0x80000000, 0xFFFFFFFF,
+            0xFFFF0000
     );
 
     public static Theme PROFESSIONAL_DARK = new Theme(
@@ -29,7 +30,8 @@ public class Themes {
             0xFF2E5C8A, 0xFFFFFFFF, 0xFF3D7BB8,
             0xFF3D7BB8, 0xFF4A8FD1,
             0xFF3CB371, 0xFFD9A441, 0xFFD9534F,
-            0x99000000, 0xFF63A6E0
+            0x99000000, 0xFF63A6E0,
+            0xFFFF0000
     );
 
     public static Theme PROFESSIONAL_LIGHT = new Theme(
@@ -44,7 +46,8 @@ public class Themes {
             0xFF3D7BB8, 0xFFFFFFFF, 0xFF2E5C8A,
             0xFF2E5C8A, 0xFF3D7BB8,
             0xFF2E9E5C, 0xFFB8841E, 0xFFC9433D,
-            0x99FFFFFF, 0xFF2E5C8A
+            0x99FFFFFF, 0xFF2E5C8A,
+            0xFFFF0000
     );
 
     public static Theme CURRENT = ThemeManager.load();

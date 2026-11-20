@@ -1,13 +1,13 @@
 package net.katch0420.macebot.main.utils;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.text.Style;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 
 public class LegacyText {
-    public static MutableText parse(String input) {
-        MutableText root = Text.empty();
+    public static MutableComponent parse(String input) {
+        MutableComponent root = Component.empty();
         Style current = Style.EMPTY;
 
         StringBuilder buffer = new StringBuilder();
@@ -18,25 +18,28 @@ public class LegacyText {
             if (c == '&' && i + 1 < input.length()) {
                 // flush buffer before applying new style
                 if (!buffer.isEmpty()) {
-                    root = root.append(Text.literal(buffer.toString()).setStyle(current));
+                    root = root.append(Component.literal(buffer.toString()).setStyle(current));
                     buffer.setLength(0);
                 }
 
                 char code = input.charAt(++i);
-                Formatting fmt = Formatting.byCode(code);
+                ChatFormatting fmt = ChatFormatting.getByCode(code);
                 if (fmt != null) {
-                    if (fmt.isColor()) {
+                    //? if <26.2 {
+                    if(fmt.isColor()){
                         current = current.withColor(fmt);
-                    } else {
-                        // bold, italic, reset, etc.
-                        switch (fmt) {
-                            case BOLD -> current = current.withBold(true);
-                            case ITALIC -> current = current.withItalic(true);
-                            case UNDERLINE -> current = current.withUnderline(true);
-                            case STRIKETHROUGH -> current = current.withStrikethrough(true);
-                            case OBFUSCATED -> current = current.withObfuscated(true);
-                            case RESET -> current = Style.EMPTY;
-                        }
+                        continue;
+                    }
+                    //?}
+                    switch (fmt) {
+                        case BOLD -> current = current.withBold(true);
+                        case ITALIC -> current = current.withItalic(true);
+                        case UNDERLINE -> current = current.withUnderlined(true);
+                        case STRIKETHROUGH -> current = current.withStrikethrough(true);
+                        case OBFUSCATED -> current = current.withObfuscated(true);
+                        case RESET -> current = Style.EMPTY;
+                        //? if >=26.2
+                        //default -> current = current.withColor(fmt);
                     }
                 }
                 continue;
@@ -47,7 +50,7 @@ public class LegacyText {
 
         // flush remaining text
         if (!buffer.isEmpty()) {
-            root = root.append(Text.literal(buffer.toString()).setStyle(current));
+            root = root.append(Component.literal(buffer.toString()).setStyle(current));
         }
 
         return root;

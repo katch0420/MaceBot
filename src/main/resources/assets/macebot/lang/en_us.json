@@ -1,5 +1,8 @@
 {
-  "key.open_gui": "Control Panel",
-  "key.test": "Test",
-  "key.category": "MaceBot"
+  "key.category.macebot.general": "MaceBot",
+  "key.gui.control": "Controller",
+  "key.gui.settings": "Settings",
+  "key.gui.kits": "Kits",
+  "key.toggle.client": "Toggle Client",
+  "key.toggle.hitbox": "Toggle Combat HitBox"
 }

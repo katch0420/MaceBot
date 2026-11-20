@@ -3,15 +3,22 @@
   "package": "net.katch0420.macebot.main.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BotJoinMessageFixMixin",
+    "ConnectionAccessor",
     "ItemStackMixin",
     "LivingEntityMixin",
     "PlayerEntity_playerBotMixin",
-    "PlayerManager_playerBotMixin"
+    "PlayerManager_playerBotMixin",
+    "ServerGamePacketListenerImplAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "overwrites": {
     "requireAnnotations": true
-	}
+  },
+  "client": [
+    "CombatHitBoxMixin",
+    "EntityHitboxDebugRendererMixin"
+  ]
 }

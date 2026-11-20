@@ -2,19 +2,19 @@ package net.katch0420.macebot.client.gui.widgets.core;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-//? if >= 1.21.9
-/*import net.minecraft.client.gui.Click;*/
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.navigation.GuiNavigation;
-import net.minecraft.client.gui.navigation.GuiNavigationPath;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.tooltip.TooltipState;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.sound.SoundManager;
-import net.minecraft.sound.SoundEvents;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ComponentPath;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.*;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.WidgetTooltipHolder;
+import net.minecraft.client.gui.navigation.FocusNavigationEvent;
+//? if >=1.21.9
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.client.sounds.SoundManager;
+import net.minecraft.sounds.SoundEvents;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -37,15 +37,15 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
     protected int hoverColor;
     protected int borderColor = 0;
 
-    public final MinecraftClient client = MinecraftClient.getInstance();
-    public final TextRenderer textRenderer = this.client.textRenderer;
+    public final Minecraft client = Minecraft.getInstance();
+    public final Font textRenderer = this.client.font;
 
     private Consumer<T> onClick;
     private Consumer<T> onRightClick;
     private Consumer<T> onKeyActivate;
 
     public Supplier<Boolean> activeSupplier;
-    private final TooltipState tooltip = new TooltipState();
+    private final WidgetTooltipHolder tooltip = new WidgetTooltipHolder();
 
     /** Which mouse button THIS widget is currently tracking as held, or -1 if none. */
     private int heldButton = -1;
@@ -62,10 +62,13 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
     }
 
     @Override
-    public final void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    //? if <=1.21.11 {
+    public final void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    //?} else
+    //public final void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         if (!visible) return;
 
-        hovered = context.scissorContains(mouseX, mouseY) && mouseX >= getX() && mouseY >= getY() && mouseX < getX() + width && mouseY < getY() + height;
+        hovered = context.containsPointInScissor(mouseX, mouseY) && mouseX >= getX() && mouseY >= getY() && mouseX < getX() + width && mouseY < getY() + height;
 
         // Defense-in-depth on top of the routing fix below: if this widget
         // still thinks it's held but the real hardware button isn't down
@@ -81,21 +84,29 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
     }
 
     private boolean isHardwareButtonDown(int button) {
-        long handle = client.getWindow().getHandle();
+        long handle = client.getWindow()
+                //? if >=1.21.9 {
+                .handle();
+                //?} else
+                //.getWindow();
         return GLFW.glfwGetMouseButton(handle, button) == GLFW.GLFW_PRESS;
     }
 
-    protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Override in subclasses to draw the actual button
+    protected void renderWidget(
+            //? if <=1.21.11 {
+            GuiGraphics
+            //?} else
+            //GuiGraphicsExtractor
+                    context, int mouseX, int mouseY, float delta) {
     }
 
     public void setTooltip(@Nullable Tooltip tooltip) {
-        this.tooltip.setTooltip(tooltip);
+        this.tooltip.set(tooltip);
     }
 
     @Nullable
     public Tooltip getTooltip() {
-        return tooltip.getTooltip();
+        return tooltip.get();
     }
 
     public void setTooltipDelay(Duration tooltipDelay) {
@@ -151,21 +162,21 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
     }
 
     @Override
+    public boolean mouseClicked(
             //? if >=1.21.9 {
-    /*public boolean mouseClicked(Click c, boolean d){
-        double mx,my;
-        int btn = c.button();
-        mx = c.x();
-        my = c.y();
-    *///?} else
-    public boolean mouseClicked(double mx, double my, int btn) {
+            MouseButtonEvent c, boolean bl
+            //?} else
+            //double mx, double my, int btn
+    ) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int btn = c.button();
         if (!active || !visible) return false;
         if (!isValidClickButton(btn)) return false;
 
         if (clicked(mx, my)) {
             held = true;
             heldButton = btn;
-            playDownSound(MinecraftClient.getInstance().getSoundManager());
+            playDownSound(Minecraft.getInstance().getSoundManager());
             if (btn == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
                 handleRightClick(mx, my);
             } else {
@@ -177,14 +188,14 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
     }
 
     @Override
+    public boolean mouseReleased(
             //? if >=1.21.9 {
-    /*public boolean mouseReleased(Click c) {
-        double mx,my;
-        int btn = c.button();
-        mx = c.x();
-        my = c.y();
-     *///?} else
-    public boolean mouseReleased(double mx, double my, int btn) {
+            MouseButtonEvent c
+            //?} else
+            //double mx, double my, int btn
+    ) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int btn = c.button();
         if (isValidClickButton(btn) && heldButton == btn) {
             held = false;
             heldButton = -1;
@@ -197,14 +208,14 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
     }
 
     @Override
+    public boolean mouseDragged(
             //? if >=1.21.9 {
-    /*public boolean mouseDragged(Click c, double dx, double dy) {
-        double mx,my;
-        int btn = c.button();
-        mx = c.x();
-        my = c.y();
-    *///?} else
-    public boolean mouseDragged(double mx, double my, int btn, double dx, double dy) {
+            MouseButtonEvent c
+            //?} else
+            //double mx, double my, int btn
+            , double dx, double dy) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int btn = c.button();
         // Same fix as mouseReleased: only react to drag if this widget is
         // actually the one being held, otherwise every drag over a container
         // would get silently swallowed by whichever child sits first.
@@ -233,7 +244,7 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_SPACE) {
             held = true;
             heldButton = GLFW.GLFW_MOUSE_BUTTON_LEFT;
-            playDownSound(MinecraftClient.getInstance().getSoundManager());
+            playDownSound(Minecraft.getInstance().getSoundManager());
             if (onKeyActivate != null) {
                 onKeyActivate.accept((T)this);
             } else {
@@ -253,11 +264,11 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
         return false;
     }
 
-    @Nullable
+
     @Override
-    public GuiNavigationPath getNavigationPath(GuiNavigation navigation) {
+    public @Nullable ComponentPath nextFocusPath(FocusNavigationEvent focusNavigationEvent) {
         if (!active || !visible) return null;
-        return !isFocused() ? GuiNavigationPath.of(this) : null;
+        return !isFocused() ? ComponentPath.leaf(this) : null;
     }
 
     @Override
@@ -266,12 +277,7 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
     }
 
     public void playDownSound(SoundManager soundManager) {
-        soundManager.play(PositionedSoundInstance.
-                //? if >= 1.21.11 {
-                /*ui(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-                 *///?} else {
-                        master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-        //?}
+        soundManager.play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
     }
 
     @Override
@@ -300,10 +306,11 @@ public class ButtonWidget<T extends ButtonWidget<T>> extends ChildWidget<ButtonW
         return hovered || focused;
     }
 
+
     @Override
-    public Selectable.SelectionType getType() {
-        if (focused) return Selectable.SelectionType.FOCUSED;
-        return hovered ? Selectable.SelectionType.HOVERED : Selectable.SelectionType.NONE;
+    public @NotNull NarrationPriority narrationPriority() {
+        if (focused) return NarrationPriority.FOCUSED;
+        return hovered ? NarrationPriority.HOVERED : NarrationPriority.NONE;
     }
 
     public boolean isVisible() {

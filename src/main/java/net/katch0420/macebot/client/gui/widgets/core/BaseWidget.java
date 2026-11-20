@@ -1,26 +1,25 @@
 package net.katch0420.macebot.client.gui.widgets.core;
 
 import net.minecraft.client.gui.*;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.layouts.LayoutElement;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
 
-public class BaseWidget<T extends BaseWidget<T>> implements Widget, Drawable, Selectable, Element {
+public class BaseWidget<T extends BaseWidget<T>> implements LayoutElement, Renderable, NarratableEntry, GuiEventListener {
     protected int x;
     protected int y;
     protected int width;
     protected int height;
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-
-    }
-
-    @Override
     public void setFocused(boolean focused) {
-
     }
 
     @Override
@@ -48,11 +47,13 @@ public class BaseWidget<T extends BaseWidget<T>> implements Widget, Drawable, Se
         return y;
     }
 
-    public T setWidth(int width){
+    @SuppressWarnings("unchecked")
+    public T setWidth(int width) {
         this.width = width;
         return (T) this;
     }
 
+    @SuppressWarnings("unchecked")
     public T setHeight(int height){
         this.height = height;
         return (T) this;
@@ -69,31 +70,40 @@ public class BaseWidget<T extends BaseWidget<T>> implements Widget, Drawable, Se
         return height;
     }
 
-    public T setSize(int width, int height){
+    @Override
+    public ScreenRectangle getRectangle() {
+        return LayoutElement.super.getRectangle();
+    }
+
+    @Override
+    public void visitWidgets(Consumer<AbstractWidget> consumer) {
+
+    }
+
+    public void setSize(int width, int height){
         setWidth(width);
         setHeight(height);
-        return (T) this;
     }
-
-    @Override
-    public ScreenRect getNavigationFocus() {
-        return Widget.super.getNavigationFocus();
-    }
-
-    @Override
-    public void forEachChild(Consumer<ClickableWidget> consumer) {
-
-    }
-
     public void tick(){}
 
+    //? if <=1.21.11 {
     @Override
-    public SelectionType getType() {
-        return SelectionType.NONE;
+    public void render(GuiGraphics guiGraphics, int i, int j, float f) {
+    }
+    //?} else {
+    /*@Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {}
+    *///?}
+
+    @Override
+    public @NotNull NarrationPriority narrationPriority() {
+        return NarrationPriority.NONE;
     }
 
     @Override
-    public void appendNarrations(NarrationMessageBuilder builder) {
+    public void updateNarration(NarrationElementOutput narrationElementOutput) {
 
     }
+
+
 }

@@ -4,12 +4,19 @@ import net.katch0420.macebot.client.gui.screens.popup.PopupScreen;
 import net.katch0420.macebot.main.kits.main.Kit;
 import net.katch0420.macebot.main.kits.server.KitRegistry;
 import net.katch0420.macebot.main.utils.LegacyText;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.text.Text;
+//? if <=1.21.11 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +50,7 @@ public class KitViewPopup extends PopupScreen {
         this.kit         = kit;
         this.displayName = displayName;
         this.iconItemId  = iconItemId;
-        this.title       = Text.literal("Kit Viewer");
+        this.title       = Component.literal("Kit Viewer");
     }
 
     /** Convenience — reads name/icon from the kit itself. */
@@ -81,7 +88,7 @@ public class KitViewPopup extends PopupScreen {
         slotSize = Math.max(14, Math.min(20, availW / 11));
         slotPad  = Math.max(2, slotSize / 8);
 
-        titleH = textRenderer.fontHeight + margin * 2;
+        titleH = font.lineHeight + margin * 2;
 
         int armorColW    = slotSize + margin;
         int mainGridW    = 9 * (slotSize + slotPad) - slotPad;
@@ -95,7 +102,7 @@ public class KitViewPopup extends PopupScreen {
         int totalGridH = Math.max(gridH, armorH);
 
         // Summary line below grid
-        int summaryH = textRenderer.fontHeight + margin;
+        int summaryH = font.lineHeight + margin;
 
         popupW = totalGridW + margin * 2;
         popupH = titleH + margin + totalGridH + summaryH + margin;
@@ -119,33 +126,37 @@ public class KitViewPopup extends PopupScreen {
     // View-only — no slot interactions, just tooltips on hover (handled in render)
 
     // ── Render ────────────────────────────────────────────────────────────────
-
+    //? if <=1.21.11 {
     @Override
-    public void renderPopupScreen(DrawContext c, int mx, int my) {
+    public void renderPopupScreen(GuiGraphics c, int mx, int my) {
         // Title bar
         c.fill(popupX, popupY, popupX + popupW, popupY + titleH, theme.header_background());
 
         // Icon in title bar
         if (iconItemId != null && !iconItemId.isEmpty()) {
             try {
-                Item item = net.minecraft.registry.Registries.ITEM.get(
-                        net.minecraft.util.Identifier.of(iconItemId));
-                c.drawItem(new ItemStack(item), popupX + margin, popupY + (titleH - 16) / 2);
+                Item item = BuiltInRegistries.ITEM
+                        //? if >=1.21.2 {
+                        .getValue
+                        //?} else
+                        //.get
+                                (Identifier.parse(iconItemId));
+                c.renderItem(new ItemStack(item), popupX + margin, popupY + (titleH - 16) / 2);
             } catch (Exception ignored) {}
         }
 
         int titleTextX = popupX + margin + (iconItemId != null && !iconItemId.isEmpty() ? 20 : 0);
-        c.drawText(textRenderer,
+        c.drawString(font,
                 LegacyText.parse(displayName != null ? displayName : "Kit"),
                 titleTextX,
-                popupY + (titleH - textRenderer.fontHeight) / 2,
+                popupY + (titleH - font.lineHeight) / 2,
                 theme.header_foreground(), false);
 
         // Slot count badge right side of title
         String badge = slots.size() + " / 41";
-        c.drawText(textRenderer, Text.of(badge),
-                popupX + popupW - margin - textRenderer.getWidth(badge),
-                popupY + (titleH - textRenderer.fontHeight) / 2,
+        c.drawString(font, Component.nullToEmpty(badge),
+                popupX + popupW - margin - font.width(badge),
+                popupY + (titleH - font.lineHeight) / 2,
                 theme.body_value(), false);
 
         // Body background
@@ -189,16 +200,108 @@ public class KitViewPopup extends PopupScreen {
         // Summary line
         int summaryY = hotbarY + slotSize + margin;
         String summary = slots.size() + " / 41 slots filled";
-        c.drawCenteredTextWithShadow(textRenderer, Text.of(summary),
+        c.drawCenteredString(font, Component.nullToEmpty(summary),
                 popupX + popupW / 2, summaryY, theme.body_value());
+     //?} else {
+    /*@Override
+    public void renderPopupScreen(GuiGraphicsExtractor c, int mx, int my) {
+        // Title bar
+        c.fill(popupX, popupY, popupX + popupW, popupY + titleH, theme.header_background());
 
-        // Tooltip
-        if (tooltipStack != null) {
-            List<Text> tip = tooltipStack.getTooltip(
-                    Item.TooltipContext.DEFAULT, null, TooltipType.Default.BASIC);
-            c.drawTooltip(textRenderer, tip, mx, my);
+        // Icon in title bar
+        if (iconItemId != null && !iconItemId.isEmpty()) {
+            try {
+                Item item = BuiltInRegistries.ITEM
+                        //? if >=1.21.2 {
+                        /^.getValue
+                        ^///?} else
+                        .get
+                                (Identifier.parse(iconItemId));
+                c.item(new ItemStack(item), popupX + margin, popupY + (titleH - 16) / 2);
+            } catch (Exception ignored) {}
         }
 
+        int titleTextX = popupX + margin + (iconItemId != null && !iconItemId.isEmpty() ? 20 : 0);
+        c.text(font,
+                LegacyText.parse(displayName != null ? displayName : "Kit"),
+                titleTextX,
+                popupY + (titleH - font.lineHeight) / 2,
+                theme.header_foreground(), false);
+
+        // Slot count badge right side of title
+        String badge = slots.size() + " / 41";
+        c.text(font, Component.nullToEmpty(badge),
+                popupX + popupW - margin - font.width(badge),
+                popupY + (titleH - font.lineHeight) / 2,
+                theme.body_value(), false);
+
+        // Body background
+        c.fill(popupX, popupY + titleH, popupX + popupW, popupY + popupH, popupBodyColor());
+        c.fill(popupX, popupY + titleH, popupX + popupW, popupY + titleH + 1, theme.panel_separator());
+
+        hoveredSlot = -1;
+        ItemStack tooltipStack = null;
+
+        // Armor slots (36–39, 40)
+        int[] armorSlots = {39, 38, 37, 36, 40};
+        for (int i = 0; i < armorSlots.length; i++) {
+            int sy = mainGridY + i * (slotSize + slotPad) + (i == 4 ? slotPad * 3 : 0);
+            ItemStack stack = slots.getOrDefault(armorSlots[i], ItemStack.EMPTY);
+            boolean hov = isOver(mx, my, armorX, sy);
+            if (hov) { hoveredSlot = armorSlots[i]; if (!stack.isEmpty()) tooltipStack = stack; }
+            renderSlot(c, stack, armorX, sy, hov);
+        }
+
+        // Main inventory (9–35)
+        for (int slot = 9; slot <= 35; slot++) {
+            int col = (slot - 9) % 9;
+            int row = (slot - 9) / 9;
+            int sx  = mainGridX + col * (slotSize + slotPad);
+            int sy  = mainGridY + row * (slotSize + slotPad);
+            ItemStack stack = slots.getOrDefault(slot, ItemStack.EMPTY);
+            boolean hov = isOver(mx, my, sx, sy);
+            if (hov) { hoveredSlot = slot; if (!stack.isEmpty()) tooltipStack = stack; }
+            renderSlot(c, stack, sx, sy, hov);
+        }
+
+        // Hotbar (0–8)
+        for (int slot = 0; slot <= 8; slot++) {
+            int sx = mainGridX + slot * (slotSize + slotPad);
+            ItemStack stack = slots.getOrDefault(slot, ItemStack.EMPTY);
+            boolean hov = isOver(mx, my, sx, hotbarY);
+            if (hov) { hoveredSlot = slot; if (!stack.isEmpty()) tooltipStack = stack; }
+            renderSlot(c, stack, sx, hotbarY, hov);
+        }
+
+        // Summary line
+        int summaryY = hotbarY + slotSize + margin;
+        String summary = slots.size() + " / 41 slots filled";
+        c.centeredText(font, Component.nullToEmpty(summary),
+                popupX + popupW / 2, summaryY, theme.body_value());
+    *///?}
+        // Tooltip
+        if (tooltipStack != null) if(!tooltipStack.isEmpty()) {
+            //? if >=1.21.6 {
+            List<ClientTooltipComponent> cmp = tooltipStack.getTooltipLines(Item.TooltipContext.EMPTY, null, TooltipFlag.NORMAL)
+                    .stream()
+                    .map(Component::getVisualOrderText)
+                    .map(ClientTooltipComponent::create)
+                    .collect(java.util.stream.Collectors.toList());
+            //? if <=1.21.11 {
+            
+             //?} else {
+            //?}
+            tooltipStack.getTooltipImage().ifPresent(img -> cmp.add(ClientTooltipComponent.create(img)));
+            //? if <=1.21.11 {
+            c.renderTooltip(getFont(), cmp, mx, my, DefaultTooltipPositioner.INSTANCE, null);
+             //?} else {
+            /*c.tooltip(getFont(), cmp, mx, my, DefaultTooltipPositioner.INSTANCE, null);
+            *///?}
+            //?} else {
+            /*List<Component> tip = tooltipStack.getTooltipLines(Item.TooltipContext.EMPTY, null, TooltipFlag.NORMAL);
+            c.renderTooltip(font, tip, tooltipStack.getTooltipImage(), mx, my);
+            *///?}
+        }
         drawPopupBorder(c, theme.accent());
     }
 
@@ -206,8 +309,8 @@ public class KitViewPopup extends PopupScreen {
     private boolean isOver(int mx, int my, int sx, int sy) {
         return mx >= sx && mx < sx + slotSize && my >= sy && my < sy + slotSize;
     }
-
-    private void renderSlot(DrawContext c, ItemStack stack, int sx, int sy, boolean hov) {
+    //? if <=1.21.11 {
+    private void renderSlot(GuiGraphics c, ItemStack stack, int sx, int sy, boolean hov) {
         int bg = hov
                 ? (theme.accent() & 0x00FFFFFF | 0x33000000)
                 : (theme.body_background() & 0x00FFFFFF | 0x55000000);
@@ -217,9 +320,22 @@ public class KitViewPopup extends PopupScreen {
         if (stack == null || stack.isEmpty()) return;
 
         int offset = (slotSize - 16) / 2;
-        c.drawItem(stack, sx + offset, sy + offset);
-        c.drawItemInSlot(textRenderer, stack, sx + offset, sy + offset);
+        c.renderItem(stack, sx + offset, sy + offset);
+        c.renderItemDecorations(font, stack, sx + offset, sy + offset);
     }
+     //?} else {
+    /*private void renderSlot(GuiGraphicsExtractor c, ItemStack stack, int sx, int sy, boolean hov) {
+        int bg = hov
+                ? (theme.accent() & 0x00FFFFFF | 0x33000000)
+                : (theme.body_background() & 0x00FFFFFF | 0x55000000);
+        c.fill(sx, sy, sx + slotSize, sy + slotSize, bg);
+        drawBorder(c, sx, sy, slotSize, slotSize, hov ? theme.accent() : theme.body_border());
 
+        if (stack == null || stack.isEmpty()) return;
 
+        int offset = (slotSize - 16) / 2;
+        c.item(stack, sx + offset, sy + offset);
+        c.itemDecorations(font, stack, sx + offset, sy + offset);
+    }
+    *///?}
 }

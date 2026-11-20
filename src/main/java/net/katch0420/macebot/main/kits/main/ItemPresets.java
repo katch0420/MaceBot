@@ -1,12 +1,12 @@
 package net.katch0420.macebot.main.kits.main;
 
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.potion.Potions;
+
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.item.enchantment.Enchantments;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -50,7 +50,7 @@ public enum ItemPresets {
                     .item(Items.SPLASH_POTION)
                     .componentChanges(
                             getComponentChanges(
-                                    b -> b.add(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Potions.STRONG_STRENGTH))
+                                    b -> b.set(DataComponents.POTION_CONTENTS, new PotionContents(Potions.STRONG_STRENGTH))
                             )
                     )
                     .build()
@@ -61,7 +61,7 @@ public enum ItemPresets {
                     .item(Items.SPLASH_POTION)
                     .componentChanges(
                             getComponentChanges(
-                                    b -> b.add(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Potions.STRONG_SWIFTNESS))
+                                    b -> b.set(DataComponents.POTION_CONTENTS, new PotionContents(Potions.STRONG_SWIFTNESS))
                             )
                     )
                     .build()
@@ -72,7 +72,7 @@ public enum ItemPresets {
                     .item(Items.SPLASH_POTION)
                     .componentChanges(
                             getComponentChanges(
-                                    b -> b.add(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Potions.STRONG_TURTLE_MASTER))
+                                    b -> b.set(DataComponents.POTION_CONTENTS, new PotionContents(Potions.STRONG_TURTLE_MASTER))
                             )
                     )
                     .build()
@@ -219,8 +219,8 @@ public enum ItemPresets {
                     .build()
     );
 
-    private static ComponentChanges getComponentChanges(Consumer<ComponentChanges.Builder> consumer) {
-        ComponentChanges.Builder builder = ComponentChanges.builder();
+    private static DataComponentPatch getComponentChanges(Consumer<DataComponentPatch.Builder> consumer) {
+        DataComponentPatch.Builder builder = DataComponentPatch.builder();
         consumer.accept(builder);
         return builder.build();
     }

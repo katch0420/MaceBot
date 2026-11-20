@@ -4,15 +4,23 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.katch0420.macebot.main.MaceBot;
 import net.katch0420.macebot.client.MaceBotClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+//? if <=1.21.11 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
+//? if >=1.21.6
+import net.minecraft.client.renderer.RenderPipelines;
+//? if >=1.21.9
+import net.minecraft.client.input.MouseButtonEvent;
+//? if <1.21.11
+//import net.minecraft.client.renderer.RenderType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import org.jetbrains.annotations.UnknownNullability;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static net.katch0420.macebot.client.MaceBotClient.theme;
 
 /**
  * About body — mod description at the top, then a scrollable list of
@@ -24,7 +32,7 @@ import static net.katch0420.macebot.client.MaceBotClient.theme;
  *   s.text("Some paragraph text here.");      // plain paragraph
  *   s.bullet("A bullet point.");              // • prefixed line
  *   s.note("A highlighted tip or warning.");  // accent-colored note
- *   s.image(Identifier.of("macebot","textures/guide/my_image.png"), 160, 80);
+ *   s.image(Identifier.of("bot","textures/guide/my_image.png"), 160, 80);
  *                                             // embedded image (w×h in px)
  *   s.spacer();                               // blank line gap
  *
@@ -33,6 +41,11 @@ import static net.katch0420.macebot.client.MaceBotClient.theme;
  */
 @Environment(EnvType.CLIENT)
 public class AboutBody extends Body {
+
+    @Override
+    public boolean isPrimary() {
+        return true;
+    }
 
     // ── Mod metadata ──────────────────────────────────────────────────────────
     private static final String MOD_NAME    = "MaceBot";
@@ -56,7 +69,7 @@ public class AboutBody extends Body {
     private final List<Section> sections = new ArrayList<>();
 
     @Override
-    public Text getLabel() { return Text.of("About"); }
+    public Component getLabel() { return Component.literal("About"); }
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -64,7 +77,7 @@ public class AboutBody extends Body {
     public void init() {
         super.init();
         margin     = s(8, 6);
-        textHeight = getTextRenderer().fontHeight;
+        textHeight = getFont().lineHeight;
         lineH      = textHeight + s(4, 3);
 
         panelX = x; panelY = y;
@@ -132,8 +145,8 @@ public class AboutBody extends Body {
         editor.note("Presets are saved locally and persist across sessions. " +
                 "Add any item via the + Add Preset button in the info panel.");
 
-        Section settings = addSection("Settings");
-        settings.text("Settings are split across three columns visible simultaneously:");
+        Section settings = addSection("SettingManager");
+        settings.text("SettingManager are split across three columns visible simultaneously:");
         settings.bullet("MaceBot — combat toggles: attacks, elytra, tracking, difficulty.");
         settings.bullet("Player  — auto-refill and buffs for the local player.");
         settings.bullet("Mod     — mode (NPC/Practice), chat/action-bar messages, practice type.");
@@ -149,7 +162,7 @@ public class AboutBody extends Body {
         theming.bullet("Classic — original greyscale look.");
         theming.spacer();
         theming.text("Creating a custom theme:");
-        theming.bullet("Go to Settings → Theme Editor.");
+        theming.bullet("Go to SettingManager → Theme Editor.");
         theming.bullet("Click + New to fork the active theme as an editable copy.");
         theming.bullet("Expand Screen → Bodys → Panel (etc.) to find color fields.");
         theming.bullet("Click a color swatch to open the HSV color picker.");
@@ -209,8 +222,20 @@ public class AboutBody extends Body {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int btn) {
-        if (btn != 0) return super.mouseClicked(mx, my, btn);
+    public boolean mouseClicked(
+            //? if >=1.21.9 {
+            MouseButtonEvent c, boolean bl
+            //?} else
+            //double mx, double my, int btn
+    ) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int btn = c.button();
+        if (btn != 0) return super.mouseClicked(
+                //? if >=1.21.9 {
+                c, bl
+                //?} else
+                //mx, my, btn
+        );
         if (mx >= contentX && mx < contentX + contentW
                 && my >= contentY && my < contentY + contentH) {
             int y = contentY - scrollOffset;
@@ -225,13 +250,18 @@ public class AboutBody extends Body {
                 if (s.expanded) y += s.contentH(this);
             }
         }
-        return super.mouseClicked(mx, my, btn);
+        return super.mouseClicked(
+                //? if >=1.21.9 {
+                c, bl
+                //?} else
+                //mx, my, btn
+        );
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
-
+    //? if <=1.21.11 {
     @Override
-    public void render(DrawContext c, int mx, int my, float d) {
+    public void render(GuiGraphics c, int mx, int my, float d) {
         c.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, theme.body_background());
 
         renderDescBlock(c);
@@ -243,7 +273,7 @@ public class AboutBody extends Body {
         renderScrollbar(c);
     }
 
-    private void renderDescBlock(DrawContext c) {
+    private void renderDescBlock(@UnknownNullability GuiGraphics c) {
         int y = panelY + margin;
 
         // ── Version + compat warning ──────────────────────────────────────────
@@ -251,27 +281,27 @@ public class AboutBody extends Body {
         String serverVer = MaceBotClient.SERVER_SIDE_VERSION != null ? MaceBotClient.SERVER_SIDE_VERSION : "unknown";
 
         String versionLine = MOD_NAME + "  v" + clientVer + "  \u2022  Server: v" + serverVer;
-        c.drawText(getTextRenderer(), Text.of(versionLine), panelX + margin, y, theme.accent(), true);
+        c.drawString(getFont(), Component.nullToEmpty(versionLine), panelX + margin, y, theme.accent(), true);
 
         // Compat check: compare the minor (x) component of x.y.z
         boolean mismatch = checkMinorMismatch(clientVer, serverVer);
         if (mismatch) {
-            int warnX = panelX + margin + getTextRenderer().getWidth(versionLine) + margin;
+            int warnX = panelX + margin + getFont().width(versionLine) + margin;
             String warn = "\u26A0 Version mismatch — some features may not work correctly";
-            c.drawText(getTextRenderer(), Text.of(warn), warnX, y, theme.warning(), true);
+            c.drawString(getFont(), Component.nullToEmpty(warn), warnX, y, theme.warning(), true);
         }
         y += textHeight + margin / 2;
 
         // ── Wrapped description ───────────────────────────────────────────────
         for (String line : wrapText(MOD_DESC, panelWidth - margin * 2)) {
-            c.drawText(getTextRenderer(), Text.of(line), panelX + margin, y, theme.body_value(), true);
+            c.drawString(getFont(), Component.nullToEmpty(line), panelX + margin, y, theme.body_value(), true);
             y += lineH;
         }
         y += margin;
 
         // ── Author / license one-liner ────────────────────────────────────────
         String meta = "by " + String.join(", ", AUTHORS) + "  \u2022  " + MOD_LICENSE;
-        c.drawText(getTextRenderer(), Text.of(meta), panelX + margin, y, theme.body_value() & 0xAAFFFFFF, true);
+        c.drawString(getFont(), Component.nullToEmpty(meta), panelX + margin, y, theme.body_value() & 0xAAFFFFFF, true);
 
         y += textHeight + margin;
 
@@ -279,7 +309,7 @@ public class AboutBody extends Body {
         c.fill(panelX, y, panelX + panelWidth, y + 1, theme.panel_separator());
     }
 
-    private void renderSections(DrawContext c, int mx, int my) {
+    private void renderSections(GuiGraphics c, int mx, int my) {
         int y = contentY - scrollOffset;
 
         for (Section s : sections) {
@@ -302,7 +332,7 @@ public class AboutBody extends Body {
 
                 // Arrow + title
                 String arrow = s.expanded ? "\u25BC " : "\u25B6 ";
-                c.drawText(getTextRenderer(), Text.of(arrow + s.title),
+                c.drawString(getFont(), Component.nullToEmpty(arrow + s.title),
                         contentX + margin, y + (hh - textHeight) / 2,
                         s.expanded ? theme.accent() : theme.body_label(), true);
 
@@ -325,7 +355,7 @@ public class AboutBody extends Body {
         }
     }
 
-    private void renderScrollbar(DrawContext c) {
+    private void renderScrollbar(GuiGraphics c) {
         if (maxScroll <= 0) return;
         int trackX = panelX + panelWidth - s(5, 4);
         c.fill(trackX, contentY, trackX + 3, contentY + contentH, theme.panel_separator());
@@ -333,6 +363,111 @@ public class AboutBody extends Body {
         int thumbY = contentY + (contentH - thumbH) * scrollOffset / Math.max(1, maxScroll);
         c.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, theme.accent());
     }
+     //?} else {
+    /*@Override
+    public void extractRenderState(GuiGraphicsExtractor c, int mx, int my, float d) {
+        c.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, theme.body_background());
+
+        renderDescBlock(c);
+
+        c.enableScissor(contentX, contentY, contentX + contentW, contentY + contentH);
+        renderSections(c, mx, my);
+        c.disableScissor();
+
+        renderScrollbar(c);
+    }
+
+    private void renderDescBlock(@UnknownNullability GuiGraphicsExtractor c) {
+        int y = panelY + margin;
+
+        // ── Version + compat warning ──────────────────────────────────────────
+        String clientVer = MaceBot.VERSION != null ? MaceBot.VERSION : "unknown";
+        String serverVer = MaceBotClient.SERVER_SIDE_VERSION != null ? MaceBotClient.SERVER_SIDE_VERSION : "unknown";
+
+        String versionLine = MOD_NAME + "  v" + clientVer + "  \u2022  Server: v" + serverVer;
+        c.text(getFont(), Component.nullToEmpty(versionLine), panelX + margin, y, theme.accent(), true);
+
+        // Compat check: compare the minor (x) component of x.y.z
+        boolean mismatch = checkMinorMismatch(clientVer, serverVer);
+        if (mismatch) {
+            int warnX = panelX + margin + getFont().width(versionLine) + margin;
+            String warn = "\u26A0 Version mismatch — some features may not work correctly";
+            c.text(getFont(), Component.nullToEmpty(warn), warnX, y, theme.warning(), true);
+        }
+        y += textHeight + margin / 2;
+
+        // ── Wrapped description ───────────────────────────────────────────────
+        for (String line : wrapText(MOD_DESC, panelWidth - margin * 2)) {
+            c.text(getFont(), Component.nullToEmpty(line), panelX + margin, y, theme.body_value(), true);
+            y += lineH;
+        }
+        y += margin;
+
+        // ── Author / license one-liner ────────────────────────────────────────
+        String meta = "by " + String.join(", ", AUTHORS) + "  \u2022  " + MOD_LICENSE;
+        c.text(getFont(), Component.nullToEmpty(meta), panelX + margin, y, theme.body_value() & 0xAAFFFFFF, true);
+
+        y += textHeight + margin;
+
+        // Separator
+        c.fill(panelX, y, panelX + panelWidth, y + 1, theme.panel_separator());
+    }
+
+    private void renderSections(GuiGraphicsExtractor c, int mx, int my) {
+        int y = contentY - scrollOffset;
+
+        for (Section s : sections) {
+            int hh = s.headerH();
+
+            // Only draw if on screen
+            if (y + hh >= contentY && y < contentY + contentH) {
+                boolean hov = mx >= contentX && mx < contentX + contentW
+                        && my >= y && my < y + hh;
+
+                // Header row background
+                int headerBg = hov
+                        ? (theme.body_button_background() & 0x00FFFFFF | 0x77000000)
+                        : (theme.body_background() & 0x00FFFFFF | 0x44000000);
+                c.fill(contentX, y, contentX + contentW, y + hh, headerBg);
+
+                // Accent left bar when expanded
+                if (s.expanded)
+                    c.fill(contentX, y, contentX + 2, y + hh, theme.accent());
+
+                // Arrow + title
+                String arrow = s.expanded ? "\u25BC " : "\u25B6 ";
+                c.text(getFont(), Component.nullToEmpty(arrow + s.title),
+                        contentX + margin, y + (hh - textHeight) / 2,
+                        s.expanded ? theme.accent() : theme.body_label(), true);
+
+                // Bottom border
+                c.fill(contentX, y + hh - 1, contentX + contentW, y + hh,
+                        theme.panel_separator() & 0x44FFFFFF);
+            }
+            y += hh;
+
+            // Content entries
+            if (s.expanded) {
+                for (Entry e : s.entries) {
+                    int eh = e.height(this);
+                    if (y + eh >= contentY && y < contentY + contentH) {
+                        e.render(c, contentX, y, contentW, this);
+                    }
+                    y += eh;
+                }
+            }
+        }
+    }
+
+    private void renderScrollbar(GuiGraphicsExtractor c) {
+        if (maxScroll <= 0) return;
+        int trackX = panelX + panelWidth - s(5, 4);
+        c.fill(trackX, contentY, trackX + 3, contentY + contentH, theme.panel_separator());
+        int thumbH = Math.max(16, contentH * contentH / Math.max(1, contentH + maxScroll));
+        int thumbY = contentY + (contentH - thumbH) * scrollOffset / Math.max(1, maxScroll);
+        c.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, theme.accent());
+    }
+    *///?}
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -352,7 +487,7 @@ public class AboutBody extends Body {
         StringBuilder cur = new StringBuilder();
         for (String word : words) {
             String test = cur.isEmpty() ? word : cur + " " + word;
-            if (getTextRenderer().getWidth(test) > maxW) {
+            if (getFont().width(test) > maxW) {
                 if (!cur.isEmpty()) lines.add(cur.toString());
                 cur = new StringBuilder(word);
             } else {
@@ -362,9 +497,6 @@ public class AboutBody extends Body {
         if (!cur.isEmpty()) lines.add(cur.toString());
         return lines;
     }
-
-    @Override
-    public boolean keyPressed(int k, int s, int m) { return false; }
 
     // ── Section + Entry model ─────────────────────────────────────────────────
 
@@ -419,7 +551,12 @@ public class AboutBody extends Body {
 
     private interface Entry {
         int    height(AboutBody body);
-        void   render(DrawContext c, int x, int y, int w, AboutBody body);
+        void   render(
+                //? if <=1.21.11 {
+                GuiGraphics c
+                //?} else
+                //GuiGraphicsExtractor c
+                , int x, int y, int w, AboutBody body);
     }
 
     private class TextEntry implements Entry {
@@ -442,9 +579,9 @@ public class AboutBody extends Body {
         public int height(AboutBody body) {
             return wrapped(contentW, body).size() * lineH + body.s(2, 1);
         }
-
+        //? if <=1.21.11 {
         @Override
-        public void render(DrawContext c, int x, int y, int w, AboutBody body) {
+        public void render(GuiGraphics c, int x, int y, int w, AboutBody body) {
             int indent = isBullet ? body.s(16, 12) : body.s(8, 6);
             int col    = isNote ? theme.warning() : theme.body_value();
 
@@ -455,21 +592,49 @@ public class AboutBody extends Body {
                 c.fill(x, y, x + 2, y + h, theme.accent() & 0x66FFFFFF);
             }
             if (isBullet) {
-                c.drawText(getTextRenderer(), Text.of("\u2022"),
+                c.drawString(getFont(), Component.nullToEmpty("\u2022"),
                         x + body.s(8, 6), y + body.s(1, 0), theme.accent(), false);
             }
             List<String> lines = wrapped(w, body);
             for (int i = 0; i < lines.size(); i++) {
-                c.drawText(getTextRenderer(), Text.of(lines.get(i)),
+                c.drawString(getFont(), Component.nullToEmpty(lines.get(i)),
                         x + indent, y + i * lineH, col, false);
             }
         }
+         //?} else {
+        /*@Override
+        public void render(GuiGraphicsExtractor c, int x, int y, int w, AboutBody body) {
+            int indent = isBullet ? body.s(16, 12) : body.s(8, 6);
+            int col    = isNote ? theme.warning() : theme.body_value();
+
+            if (isNote) {
+                List<String> lines = wrapped(w, body);
+                int h = lines.size() * lineH + body.s(2, 1);
+                c.fill(x, y, x + w, y + h, theme.accent() & 0x11FFFFFF);
+                c.fill(x, y, x + 2, y + h, theme.accent() & 0x66FFFFFF);
+            }
+            if (isBullet) {
+                c.text(getFont(), Component.nullToEmpty("\u2022"),
+                        x + body.s(8, 6), y + body.s(1, 0), theme.accent(), false);
+            }
+            List<String> lines = wrapped(w, body);
+            for (int i = 0; i < lines.size(); i++) {
+                c.text(getFont(), Component.nullToEmpty(lines.get(i)),
+                        x + indent, y + i * lineH, col, false);
+            }
+        }
+        *///?}
     }
 
 
     private static class SpacerEntry implements Entry {
         @Override public int  height(AboutBody body) { return body.lineH / 2; }
-        @Override public void render(DrawContext c, int x, int y, int w, AboutBody body) {}
+        @Override public void render(
+                //? if <=1.21.11 {
+                GuiGraphics c
+                //?} else
+                //GuiGraphicsExtractor c
+                , int x, int y, int w, AboutBody body) {}
     }
 
     private class ImageEntry implements Entry {
@@ -494,34 +659,46 @@ public class AboutBody extends Body {
         }
 
         @Override
-        public void render(DrawContext c, int x, int y, int w, AboutBody body) {
+        public void render(
+                //? if <=1.21.11 {
+                GuiGraphics c
+                //?} else
+                //GuiGraphicsExtractor c
+                , int x, int y, int w, AboutBody body) {
             int dw = dispW(w);
             int dh = dispH(w);
             int dx = x + margin + (w - margin * 2 - dw) / 2; // centered
 
-            boolean exists = net.minecraft.client.MinecraftClient.getInstance()
+            boolean exists = Minecraft.getInstance()
                     .getResourceManager().getResource(id).isPresent();
 
             if (exists) {
-                c.drawTexture(
-                        //? if >=1.21.4 {
-                        /* net.minecraft.client.render.RenderLayer::getGuiTextured,
-                         *///?}
-                        id, dx, y, 0, 0, dw, dh, dw, dh);
+                c.blit(/*? if >=1.21.2 && < 1.21.6 >>*//*RenderType::guiTextured,*/ /*/^*/ /*? if >=1.21.6 >>*/RenderPipelines.GUI_TEXTURED, /**/ id, dx, y, 0, 0, dw, dh, dw, dh);
             } else {
                 // Placeholder box so layout doesn't break while image is missing
                 c.fill(dx, y, dx + dw, y + dh, theme.body_border() & 0x44FFFFFF);
                 drawBorder(c, dx, y, dw, dh, theme.body_border());
                 String lbl = "[image: " + id.getPath() + "]";
-                int lw = getTextRenderer().getWidth(lbl);
+                int lw = getFont().width(lbl);
                 if (lw < dw - 4)
-                    c.drawText(getTextRenderer(), Text.of(lbl),
+                    //? if <=1.21.11 {
+                    c.drawString(getFont(), Component.nullToEmpty(lbl),
                             dx + (dw - lw) / 2, y + (dh - textHeight) / 2,
                             theme.body_value() & 0x88FFFFFF, false);
+                     //?} else {
+                    /*c.text(getFont(), Component.nullToEmpty(lbl),
+                            dx + (dw - lw) / 2, y + (dh - textHeight) / 2,
+                            theme.body_value() & 0x88FFFFFF, false);
+                    *///?}
             }
         }
 
-        private void drawBorder(DrawContext c, int x, int y, int w, int h, int col) {
+        private void drawBorder(
+                //? if <=1.21.11 {
+                GuiGraphics c
+                //?} else
+                //GuiGraphicsExtractor c
+                , int x, int y, int w, int h, int col) {
             c.fill(x, y, x+w, y+1, col); c.fill(x, y+h-1, x+w, y+h, col);
             c.fill(x, y, x+1, y+h, col); c.fill(x+w-1, y, x+w, y+h, col);
         }

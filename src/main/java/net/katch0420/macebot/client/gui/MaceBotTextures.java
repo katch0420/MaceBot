@@ -1,6 +1,7 @@
 package net.katch0420.macebot.client.gui;
 
-import net.minecraft.util.Identifier;
+
+import net.minecraft.resources.Identifier;
 
 /**
  * Central registry of GUI texture identifiers.
@@ -12,7 +13,7 @@ import net.minecraft.util.Identifier;
  */
 public class MaceBotTextures {
     private static Identifier id(String path) {
-        return Identifier.of("macebot", "textures/gui/" + path);
+        return Identifier.fromNamespaceAndPath("macebot", "textures/gui/" + path);
     }
 
     // ---- Sidebar navigation icons ----
@@ -26,9 +27,9 @@ public class MaceBotTextures {
     // Generated flat-style 32x32 placeholder icons - see /textures/quick_*.png
     public static final Identifier QUICK_KITS = id("quick_kits.png");
     public static final Identifier QUICK_BUFF = id("quick_buff.png");
-    public static final Identifier QUICK_BUFF_DISABLED = id("quick_buff.png");
+    public static final Identifier QUICK_BUFF_DISABLED = id("quick_buff_disabled.png");
     public static final Identifier QUICK_REFILL = id("quick_refill.png");
-    public static final Identifier QUICK_REFILL_DISABLED = id("quick_refill.png");
+    public static final Identifier QUICK_REFILL_DISABLED = id("quick_refill_disabled.png");
     public static final Identifier QUICK_TELEPORT = id("quick_teleport.png");
     public static final Identifier QUICK_SETTINGS = id("quick_settings.png");
 }

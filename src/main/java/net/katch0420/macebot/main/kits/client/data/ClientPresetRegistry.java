@@ -5,9 +5,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryOps;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.world.item.ItemStack;
 
 import java.io.*;
 import java.nio.file.*;
@@ -21,7 +21,7 @@ public class ClientPresetRegistry {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path FILE = FabricLoader.getInstance()
-            .getConfigDir().resolve("macebot").resolve("item_presets.json");
+            .getConfigDir().resolve("bot").resolve("item_presets.json");
 
     private static final List<ItemStack> PRESETS = new ArrayList<>();
     private static final List<Runnable>  LISTENERS = new ArrayList<>();
@@ -36,7 +36,7 @@ public class ClientPresetRegistry {
         if (stack == null || stack.isEmpty()) return;
         // Prevent exact duplicates (same item + same components)
         for (ItemStack existing : PRESETS) {
-            if (ItemStack.areItemsAndComponentsEqual(existing, stack)) return;
+            if (ItemStack.isSameItemSameComponents(existing, stack)) return;
         }
         PRESETS.add(stack.copy());
         save();
@@ -53,14 +53,18 @@ public class ClientPresetRegistry {
     public static boolean contains(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         for (ItemStack existing : PRESETS) {
-            if (ItemStack.areItemsAndComponentsEqual(existing, stack)) return true;
+            if (ItemStack.isSameItemSameComponents(existing, stack)) return true;
         }
         return false;
     }
 
+    public static void remove(ItemStack stack){
+        remove(indexOf(stack));
+    }
+
     public static int indexOf(ItemStack stack) {
         for (int i = 0; i < PRESETS.size(); i++) {
-            if (ItemStack.areItemsAndComponentsEqual(PRESETS.get(i), stack)) return i;
+            if (ItemStack.isSameItemSameComponents(PRESETS.get(i), stack)) return i;
         }
         return -1;
     }
@@ -75,9 +79,9 @@ public class ClientPresetRegistry {
             JsonArray arr = GSON.fromJson(reader, JsonArray.class);
             if (arr == null) return;
 
-            RegistryOps<JsonElement> ops = RegistryOps.of(
+            RegistryOps<JsonElement> ops = RegistryOps.create(
                     com.mojang.serialization.JsonOps.INSTANCE,
-                    MinecraftClient.getInstance().world.getRegistryManager());
+                    Minecraft.getInstance().level.registryAccess());
 
             for (JsonElement el : arr) {
                 ItemStack stack = ItemStack.CODEC.parse(ops, el)
@@ -91,12 +95,12 @@ public class ClientPresetRegistry {
     }
 
     private static void save() {
-        if (MinecraftClient.getInstance().world == null) return;
+        if (Minecraft.getInstance().level == null) return;
         try {
             Files.createDirectories(FILE.getParent());
-            RegistryOps<JsonElement> ops = RegistryOps.of(
+            RegistryOps<JsonElement> ops = RegistryOps.create(
                     com.mojang.serialization.JsonOps.INSTANCE,
-                    MinecraftClient.getInstance().world.getRegistryManager());
+                    Minecraft.getInstance().level.registryAccess());
 
             JsonArray arr = new JsonArray();
             for (ItemStack stack : PRESETS) {

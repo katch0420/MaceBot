@@ -1,36 +1,26 @@
 package net.katch0420.macebot.main.macebot.bot;
 
 import io.netty.channel.embedded.EmbeddedChannel;
-import net.minecraft.network.ClientConnection;
-import net.minecraft.network.NetworkSide;
-import net.minecraft.network.listener.PacketListener;
-//? if >=1.21.5 {
-//import net.minecraft.network.state.NetworkState;
-//?} else
-import net.minecraft.network.NetworkState;
+import net.katch0420.macebot.main.mixin.ConnectionAccessor;
+import net.minecraft.network.Connection;
+import net.minecraft.network.PacketListener;
+import net.minecraft.network.ProtocolInfo;
+import net.minecraft.network.protocol.PacketFlow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 
-public class PlayerBotConnection extends ClientConnection {
-
-    public PlayerBotConnection(NetworkSide side) {
-        super(side);
-    }
+public class PlayerBotConnection extends Connection {
 
     private static final Logger log = LoggerFactory.getLogger(PlayerBotConnection.class);
-    EmbeddedChannel embeddedChannel = new EmbeddedChannel();
-    Field channelField;
-
-    {
+    private final EmbeddedChannel embeddedChannel = new EmbeddedChannel();
+    public PlayerBotConnection(PacketFlow side) {
+        super(side);
         try {
-
-            channelField = ClientConnection.class.getDeclaredField("channel");
-            channelField.setAccessible(true);
-            channelField.set(this, embeddedChannel);
+            ((ConnectionAccessor) this).setChannel(embeddedChannel);
         } catch (Exception e) {
-            log.error("e: ", e);
+            log.error("Failed to inject channel", e);
         }
     }
 
@@ -39,14 +29,19 @@ public class PlayerBotConnection extends ClientConnection {
     }
 
     @Override
-    public void setInitialPacketListener(PacketListener packetListener) {
+    public void setListenerForServerboundHandshake(PacketListener packetListener) {
     }
 
     @Override
-    public void tryDisableAutoRead() {
+    public void setReadOnly() {
     }
 
     @Override
-    public <T extends PacketListener> void transitionInbound(NetworkState<T> state, T packetListener) {
+    public boolean isConnected() {
+        return true;
+    }
+
+    @Override
+    public <T extends PacketListener> void setupInboundProtocol(ProtocolInfo<T> state, T packetListener) {
     }
 }

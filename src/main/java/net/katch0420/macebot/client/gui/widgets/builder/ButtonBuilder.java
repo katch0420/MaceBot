@@ -1,7 +1,7 @@
 package net.katch0420.macebot.client.gui.widgets.builder;
 
 import net.katch0420.macebot.client.gui.widgets.core.ButtonWidget;
-import net.minecraft.client.gui.tooltip.Tooltip;
+import net.minecraft.client.gui.components.Tooltip;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;

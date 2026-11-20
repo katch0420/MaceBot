@@ -1,47 +1,49 @@
 package net.katch0420.macebot.client.gui.widgets.core;
 
-//? if >=1.21.9 {
-/*import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-*///?}
 import com.google.common.collect.Lists;
 import net.minecraft.client.gui.*;
-import net.minecraft.client.gui.navigation.GuiNavigation;
-import net.minecraft.client.gui.navigation.GuiNavigationPath;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public class ParentWidget<P extends ParentWidget<P>> extends ChildWidget<P> implements ParentElement {
+public class ParentWidget<P extends ParentWidget<P>> extends ChildWidget<P> implements ContainerEventHandler {
 
-    private final List<Element> children = Lists.<Element>newArrayList();
-    private final List<Drawable> drawables = Lists.<Drawable>newArrayList();
+    private final List<GuiEventListener> children = Lists.<GuiEventListener>newArrayList();
+    private final List<Renderable> drawables = Lists.<Renderable>newArrayList();
 
     @Override
-    public List<? extends Element> children() {
+    public List<? extends GuiEventListener> children() {
         return this.children;
     }
 
-    protected <T extends Element & Drawable & Selectable> T addDrawableChild(T drawableElement) {
+    @Override
+    public Optional<GuiEventListener> getChildAt(double d, double e) {
+        return ContainerEventHandler.super.getChildAt(d, e);
+    }
+
+    protected <T extends GuiEventListener & Renderable & NarratableEntry> T addDrawableChild(T drawableElement) {
         this.drawables.add(drawableElement);
         return this.addSelectableChild(drawableElement);
     }
 
-    protected <T extends Drawable> T addDrawable(T drawable) {
+    protected <T extends Renderable> T addDrawable(T drawable) {
         this.drawables.add(drawable);
         return drawable;
     }
 
-    protected <T extends Element & Selectable> T addSelectableChild(T child) {
+    protected <T extends GuiEventListener & NarratableEntry> T addSelectableChild(T child) {
         this.children.add(child);
         return child;
     }
 
-    protected void remove(Element child) {
-        if (child instanceof Drawable) {
-            this.drawables.remove((Drawable)child);
+    protected void remove(GuiEventListener child) {
+        if (child instanceof Renderable) {
+            this.drawables.remove((Renderable)child);
         }
         this.children.remove(child);
     }
@@ -52,7 +54,7 @@ public class ParentWidget<P extends ParentWidget<P>> extends ChildWidget<P> impl
     }
 
     @Nullable
-    private Element focused;
+    private GuiEventListener focused;
     private boolean dragging;
 
     @Override
@@ -67,12 +69,12 @@ public class ParentWidget<P extends ParentWidget<P>> extends ChildWidget<P> impl
 
     @Nullable
     @Override
-    public Element getFocused() {
+    public GuiEventListener getFocused() {
         return this.focused;
     }
 
     @Override
-    public void setFocused(@Nullable Element focused) {
+    public void setFocused(@Nullable GuiEventListener focused) {
         if (this.focused != null) {
             this.focused.setFocused(false);
         }
@@ -86,21 +88,29 @@ public class ParentWidget<P extends ParentWidget<P>> extends ChildWidget<P> impl
 
     @Override
     public void tick() {
-        for (Element child : children) {
+        for (GuiEventListener child : children) {
             if(child instanceof BaseWidget<?> c) c.tick();
         }
     }
-
+    //? if <=1.21.11 {
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        for (Drawable child : drawables) {
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+        for (Renderable child : drawables) {
             child.render(context, mouseX, mouseY, delta);
         }
     }
+    //?} else {
+    /*@Override
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        for (Renderable child : drawables) {
+            child.extractRenderState(context, mouseX, mouseY, delta);
+        }
+    }
+    *///?}
 
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
-        for (Element child : children) {
+        for (GuiEventListener child : children) {
             if (child.isMouseOver(mouseX, mouseY)) {
                 return true;
             }

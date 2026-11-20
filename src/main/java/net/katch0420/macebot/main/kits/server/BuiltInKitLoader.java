@@ -3,8 +3,7 @@ package net.katch0420.macebot.main.kits.server;
 import net.katch0420.macebot.main.kits.main.ItemPresets;
 import net.katch0420.macebot.main.kits.main.Kit;
 import net.katch0420.macebot.main.kits.main.KitStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
@@ -16,7 +15,7 @@ public class BuiltInKitLoader {
     }
 
     private static void netheriteMaceKit(){
-        Kit netherite_mace = new Kit("netherite_mace", "Netherite Mace Kit", Identifier.ofVanilla("netherite_sword"), false);
+        Kit netherite_mace = new Kit("netherite_mace", "Netherite Mace Kit", Identifier.withDefaultNamespace("netherite_sword"), false);
         List<KitStack> netherite_mace_items = List.of(
                 KitStack.stack(ItemPresets.NETHERITE_SWORD_SHARPNESS, 0),
                 KitStack.stack(ItemPresets.ENDER_PEARL, 1, 16),
@@ -73,7 +72,7 @@ public class BuiltInKitLoader {
     }
 
     private static void diamondMaceKit(){
-        Kit diamond_mace = new Kit("diamond_mace", "Diamond Mace Kit", Identifier.ofVanilla("diamond_sword") ,false);
+        Kit diamond_mace = new Kit("diamond_mace", "Diamond Mace Kit", Identifier.withDefaultNamespace("diamond_sword") ,false);
         List<KitStack> diamond_mace_items = List.of(
                 KitStack.stack(ItemPresets.DIAMOND_SWORD_SHARPNESS, 0),
                 KitStack.stack(ItemPresets.ENDER_PEARL, 1, 16),

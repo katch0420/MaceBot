@@ -1,24 +1,34 @@
 package net.katch0420.macebot.client.gui.bodies;
 
+import net.katch0420.macebot.client.MaceBotClient;
 import net.katch0420.macebot.client.gui.MaceBotTextures;
 import net.katch0420.macebot.client.gui.layout.ResponsiveLayout;
+import net.katch0420.macebot.client.gui.screens.popup.StyledTextEditor;
 import net.katch0420.macebot.client.gui.widgets.buttons.Button;
 import net.katch0420.macebot.client.macebot.MaceBotCommandSender;
 import net.katch0420.macebot.client.macebot.MacebotDataGetter;
-import net.katch0420.macebot.main.macebot.control.Controller.Mode;
-import net.katch0420.macebot.main.macebot.control.Difficulty;
-import net.katch0420.macebot.main.settings.client.ClientSideSettings;
-import net.katch0420.macebot.main.settings.client.ClientSideSettingsSyncHelper;
-import net.katch0420.macebot.main.settings.main.SettingsKey;
+import net.katch0420.macebot.main.macebot.ai.Mode;
+import net.katch0420.macebot.main.network.packets.c2s.ChangeNameC2SPacket;
+import net.katch0420.macebot.main.settings.Settings;import net.katch0420.macebot.main.settings.SettingsCategories;
 import net.katch0420.macebot.client.utils.RenderUtils;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+//? if <=1.21.11 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EntityType;
+//? if >=26.2
+//import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.UnknownNullability;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -67,15 +77,15 @@ public class ControllerBody extends Body {
     int controlSettingButtonY, controlSettingButtonSize;
 
     @Override
-    public Text getLabel() {
-        return Text.of("Controls");
+    public Component getLabel() {
+        return Component.literal("Controls");
     }
 
     @Override
     public void init() {
         super.init();
         margin = s(6, 4);
-        textHeight = getTextRenderer().fontHeight;
+        textHeight = getFont().lineHeight;
         stacked = ResponsiveLayout.shouldStackVertically(availableWidth, STACK_THRESHOLD);
 
         if (stacked) {
@@ -163,7 +173,7 @@ public class ControllerBody extends Body {
         addDrawableChild(Button.builder()
                 .position(dataX, dataY + dataList.size() * (textHeight + entityStatsGap) + 2 * margin)
                 .size(entityEditButtonWidth, entityEditButtonHeight)
-                .baseLabel(Text.of("Change Name"))
+                .baseLabel(Component.nullToEmpty("Change Name"))
                 .onClick(b -> openNameEditor())
                 .backgroundColor(theme.body_button_background())
                 .borderColor(theme.body_button_border())
@@ -172,17 +182,17 @@ public class ControllerBody extends Body {
                 .foregroundColor(theme.body_button_foreground())
                 .build());
 
-        addDrawableChild(Button.builder()
-                .position(dataX, dataY + dataList.size() * (textHeight + entityStatsGap) + 3 * margin + entityEditButtonHeight)
-                .size(entityEditButtonWidth, entityEditButtonHeight)
-                .baseLabel(Text.of("Change Skin"))
-                .onClick(b -> openSkinEditor())
-                .backgroundColor(theme.body_button_background())
-                .borderColor(theme.body_button_border())
-                .hoverColor(theme.body_button_background() + 0xFF101010)
-                .holdColor(theme.body_button_background() + 0xFF202020)
-                .foregroundColor(theme.body_button_foreground())
-                .build());
+//        addDrawableChild(Button.builder()
+//                .position(dataX, dataY + dataList.size() * (textHeight + entityStatsGap) + 3 * margin + entityEditButtonHeight)
+//                .size(entityEditButtonWidth, entityEditButtonHeight)
+//                .baseLabel(Text.of("Change Skin"))
+//                .onClick(b -> openSkinEditor())
+//                .backgroundColor(theme.body_button_background())
+//                .borderColor(theme.body_button_border())
+//                .hoverColor(theme.body_button_background() + 0xFF101010)
+//                .holdColor(theme.body_button_background() + 0xFF202020)
+//                .foregroundColor(theme.body_button_foreground())
+//                .build());
 
         int i = 0;
         for (Button b : entitySettingButtonList()) {
@@ -220,8 +230,8 @@ public class ControllerBody extends Body {
                 .hoverColor(theme.body_button_background() + 0xFF101010)
                 .holdColor(theme.body_button_background() + 0xFF202020)
                 .foregroundColor(theme.body_button_foreground())
-                .baseLabel(Text.literal("Difficulty: ").append(ClientSideSettings.getDifficulty().displayText))
-                .onClick(this::roleDifficulty)
+                .baseLabel(Component.literal("Skill: " + Settings.SKILL.getValue()))
+                .onClick(this::openSkillSetting)
                 .build());
 
         addDrawableChild(Button.builder()
@@ -232,7 +242,7 @@ public class ControllerBody extends Body {
                 .hoverColor(theme.body_button_background() + 0xFF101010)
                 .holdColor(theme.body_button_background() + 0xFF202020)
                 .foregroundColor(theme.body_button_foreground())
-                .baseLabel(Text.literal("Mode: ").append(ClientSideSettings.getMode().displayText))
+                .baseLabel(Component.literal("Mode: ").append(Settings.MODE.getValue().displayText))
                 .onClick(this::roleMode)
                 .build());
 
@@ -255,34 +265,26 @@ public class ControllerBody extends Body {
     // Actions
     // ------------------------------------------------------------------
 
-    private void roleDifficulty(Button b) {
-        List<Difficulty> list = List.of(Difficulty.values());
-        int currentIndex = list.indexOf(ClientSideSettings.getDifficulty());
-        Difficulty value = list.get((currentIndex + 1) % list.size());
-        ClientSideSettingsSyncHelper.setAndSend(SettingsKey.DIFFICULTY, value);
-        b.setSingleLabel(Text.literal("Difficulty: ").append(value.displayText));
+    private void openSkillSetting(Button button) {
+        MaceBotClient.mainFrame.setBody(Bodies.SETTINGS).focusColumn(SettingsCategories.MACEBOT);
     }
 
     private void roleMode(Button b) {
-        List<Mode> list = List.of(Mode.values());
-        int currentIndex = list.indexOf(ClientSideSettings.getMode());
-        Mode value = list.get((currentIndex + 1) % list.size());
-        ClientSideSettingsSyncHelper.setAndSend(SettingsKey.MODE, value);
-        b.setSingleLabel(Text.literal("Mode: ").append(value.displayText));
+        b.setSingleLabel(Component.literal("Mode: ").append(Settings.MODE.rollAndGet().displayText));
     }
 
     // ------------------------------------------------------------------
     // Render
     // ------------------------------------------------------------------
-
+    //? if <=1.21.11 {
     @Override
-    public void render(DrawContext c, int mx, int my, float d) {
+    public void render(GuiGraphics c, int mx, int my, float d) {
         renderEntityPanel(c, mx, my);
         renderControlPanel(c, mx, my);
         super.render(c, mx, my, d);
     }
 
-    private void renderControlPanel(DrawContext c, int mx, int my) {
+    private void renderControlPanel(GuiGraphics c, int mx, int my) {
         RenderUtils.setOrigin2d(c, controlX, controlY);
         c.fill(0, 0, controlPanelWidth, controlPanelHeight, theme.body_background());
         RenderUtils.resetOrigin(c);
@@ -293,7 +295,7 @@ public class ControllerBody extends Body {
         RenderUtils.resetOrigin(c);
 
         RenderUtils.setOrigin2d(c, controlX + margin, controlSettingsY);
-        drawSectionHeader(c, "Quick Settings", controlPanelWidth, theme.body_category_label());
+        drawSectionHeader(c, "Quick SettingManager", controlPanelWidth, theme.body_category_label());
         RenderUtils.resetOrigin(c);
 
         // FIX: this used to redraw the *entity* panel's labels a second time
@@ -302,13 +304,13 @@ public class ControllerBody extends Body {
         RenderUtils.setOrigin2d(c, controlButtonX, controlSettingButtonY + controlSettingButtonSize + margin);
         AtomicInteger i = new AtomicInteger(0);
         controlSettingButtonLabels().forEach(l ->
-                c.drawCenteredTextWithShadow(getTextRenderer(), Text.of(l),
+                c.drawCenteredString(getFont(), Component.nullToEmpty(l),
                         controlSettingButtonSize / 2 + i.getAndIncrement() * (margin + controlSettingButtonSize),
                         0, theme.body_label()));
         RenderUtils.resetOrigin(c);
     }
 
-    private void renderEntityPanel(DrawContext c, int mx, int my) {
+    private void renderEntityPanel(GuiGraphics c, int mx, int my) {
         RenderUtils.setOrigin2d(c, entityX, entityY);
         c.fill(0, 0, entityPanelWidth, entityPanelHeight, theme.body_background());
         RenderUtils.resetOrigin(c);
@@ -325,65 +327,146 @@ public class ControllerBody extends Body {
         LivingEntity finalEntity = entity != null ? entity : getArmorStandEntity();
         RenderUtils.drawEntity(c, entityDisplayX, entityDisplayY, entityDisplayX + entityDisplayWidth,
                 entityDisplayY + entityDisplayHeight,
-                (int) (entityDisplayHeight / finalEntity.getHeight() * 0.6), 0.0f, mx, my, finalEntity);
+                (int) (entityDisplayHeight / finalEntity.getBbHeight() * 0.6), 0.0f, mx, my, finalEntity);
 
         RenderUtils.setOrigin2d(c, dataX, dataY);
         List<Data> dataList = entityDataList();
         AtomicInteger i = new AtomicInteger();
         dataList.forEach(dt -> {
-            Text key = Text.empty().append(dt.key).append(":");
+            Component key = Component.empty().append(dt.key).append(":");
             int rowY = (textHeight + entityStatsGap) * i.get();
-            c.drawText(getTextRenderer(), key, 0, rowY, theme.body_key(), true);
-            c.drawText(getTextRenderer(), dt.value.get(), getTextRenderer().getWidth(key) + margin, rowY,
+            c.drawString(getFont(), key, 0, rowY, theme.body_key(), true);
+            c.drawString(getFont(), dt.value.get(), getFont().width(key) + margin, rowY,
                     theme.body_value(), true);
             i.getAndIncrement();
         });
         RenderUtils.resetOrigin(c);
 
         RenderUtils.setOrigin2d(c, entitySettingX, entitySettingY);
-        drawSectionHeader(c, "Quick Settings", entityPanelWidth, theme.body_category_label());
+        drawSectionHeader(c, "Quick SettingManager", entityPanelWidth, theme.body_category_label());
         RenderUtils.resetOrigin(c);
 
         RenderUtils.setOrigin2d(c, entitySettingX + margin, entitySettingButtonY + entitySettingButtonSize + margin);
         AtomicInteger j = new AtomicInteger(0);
         settingButtonLabels().forEach(l ->
-                c.drawCenteredTextWithShadow(getTextRenderer(), Text.of(l),
+                c.drawCenteredString(getFont(), Component.nullToEmpty(l),
                         entitySettingButtonSize / 2 + j.getAndIncrement() * (margin + entitySettingButtonSize),
                         0, theme.body_label()));
         RenderUtils.resetOrigin(c);
     }
 
-    /** Draws the small "—— Label ——" section header used throughout both panels. */
-    private void drawSectionHeader(DrawContext c, String label, int panelWidth, int color) {
-        Text t = Text.of(label);
-        int textWidth = getTextRenderer().getWidth(t);
-        c.drawHorizontalLine(0, margin, textHeight / 2, color);
-        c.drawText(getTextRenderer(), t, 2 * margin, 0, color, true);
-        c.drawHorizontalLine(2 * margin + textWidth + margin,
+    private void drawSectionHeader(@UnknownNullability GuiGraphics c, String label, int panelWidth, int color) {
+        Component t = Component.nullToEmpty(label);
+        int textWidth = getFont().width(t);
+        c.hLine(0, margin, textHeight / 2, color);
+        c.drawString(getFont(), t, 2 * margin, 0, color, true);
+        c.hLine(2 * margin + textWidth + margin,
                 Math.max(2 * margin + textWidth + margin, panelWidth * 2 / 3 - margin), textHeight / 2, color);
     }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return false;
+     //?} else {
+    /*@Override
+    public void extractRenderState( GuiGraphicsExtractor c, int mx, int my, float d) {
+        renderEntityPanel(c, mx, my);
+        renderControlPanel(c, mx, my);
+        super.extractRenderState(c, mx, my, d);
     }
+
+    private void renderControlPanel(GuiGraphicsExtractor c, int mx, int my) {
+        RenderUtils.setOrigin2d(c, controlX, controlY);
+        c.fill(0, 0, controlPanelWidth, controlPanelHeight, theme.body_background());
+        RenderUtils.resetOrigin(c);
+
+        // FIX (was controlX, controlX - header rendered at the wrong Y):
+        RenderUtils.setOrigin2d(c, controlX + margin, controlY + margin);
+        drawSectionHeader(c, "Controls", controlPanelWidth, theme.body_foreground());
+        RenderUtils.resetOrigin(c);
+
+        RenderUtils.setOrigin2d(c, controlX + margin, controlSettingsY);
+        drawSectionHeader(c, "Quick SettingManager", controlPanelWidth, theme.body_category_label());
+        RenderUtils.resetOrigin(c);
+
+        // FIX: this used to redraw the *entity* panel's labels a second time
+        // here. Now it draws the control panel's own quick-setting labels,
+        // under the control panel's own icon row.
+        RenderUtils.setOrigin2d(c, controlButtonX, controlSettingButtonY + controlSettingButtonSize + margin);
+        AtomicInteger i = new AtomicInteger(0);
+        controlSettingButtonLabels().forEach(l ->
+                c.centeredText(getFont(), Component.nullToEmpty(l),
+                        controlSettingButtonSize / 2 + i.getAndIncrement() * (margin + controlSettingButtonSize),
+                        0, theme.body_label()));
+        RenderUtils.resetOrigin(c);
+    }
+
+    private void renderEntityPanel(GuiGraphicsExtractor c, int mx, int my) {
+        RenderUtils.setOrigin2d(c, entityX, entityY);
+        c.fill(0, 0, entityPanelWidth, entityPanelHeight, theme.body_background());
+        RenderUtils.resetOrigin(c);
+
+        RenderUtils.setOrigin2d(c, entityX + margin, entityY + margin);
+        drawSectionHeader(c, "MaceBot", entityPanelWidth, theme.body_foreground());
+        RenderUtils.resetOrigin(c);
+
+        RenderUtils.setOrigin2d(c, entityDisplayX, entityDisplayY);
+        c.fill(0, 0, entityDisplayWidth, entityDisplayHeight, theme.display_background());
+        RenderUtils.resetOrigin(c);
+
+        LivingEntity entity = MacebotDataGetter.getMacebot();
+        LivingEntity finalEntity = entity != null ? entity : getArmorStandEntity();
+        RenderUtils.drawEntity(c, entityDisplayX, entityDisplayY, entityDisplayX + entityDisplayWidth,
+                entityDisplayY + entityDisplayHeight,
+                (int) (entityDisplayHeight / finalEntity.getBbHeight() * 0.6), 0.0f, mx, my, finalEntity);
+
+        RenderUtils.setOrigin2d(c, dataX, dataY);
+        List<Data> dataList = entityDataList();
+        AtomicInteger i = new AtomicInteger();
+        dataList.forEach(dt -> {
+            Component key = Component.empty().append(dt.key).append(":");
+            int rowY = (textHeight + entityStatsGap) * i.get();
+            c.text(getFont(), key, 0, rowY, theme.body_key(), true);
+            c.text(getFont(), dt.value.get(), getFont().width(key) + margin, rowY,
+                    theme.body_value(), true);
+            i.getAndIncrement();
+        });
+        RenderUtils.resetOrigin(c);
+
+        RenderUtils.setOrigin2d(c, entitySettingX, entitySettingY);
+        drawSectionHeader(c, "Quick SettingManager", entityPanelWidth, theme.body_category_label());
+        RenderUtils.resetOrigin(c);
+
+        RenderUtils.setOrigin2d(c, entitySettingX + margin, entitySettingButtonY + entitySettingButtonSize + margin);
+        AtomicInteger j = new AtomicInteger(0);
+        settingButtonLabels().forEach(l ->
+                c.centeredText(getFont(), Component.nullToEmpty(l),
+                        entitySettingButtonSize / 2 + j.getAndIncrement() * (margin + entitySettingButtonSize),
+                        0, theme.body_label()));
+        RenderUtils.resetOrigin(c);
+    }
+    private void drawSectionHeader(@UnknownNullability GuiGraphicsExtractor c, String label, int panelWidth, int color) {
+        Component t = Component.nullToEmpty(label);
+        int textWidth = getFont().width(t);
+        c.horizontalLine(0, margin, textHeight / 2, color);
+        c.text(getFont(), t, 2 * margin, 0, color, true);
+        c.horizontalLine(2 * margin + textWidth + margin,
+                Math.max(2 * margin + textWidth + margin, panelWidth * 2 / 3 - margin), textHeight / 2, color);
+    }
+    *///?}
 
     public List<Data> entityDataList() {
         return List.of(
                 new Data("Name", MacebotDataGetter::getDisplayName),
-                new Data("Health", () -> Text.of((MacebotDataGetter.getHealth() == -1 ? "N/A" : MacebotDataGetter.getHealth())
+                new Data("Health", () -> Component.nullToEmpty((MacebotDataGetter.getHealth() == -1 ? "N/A" : MacebotDataGetter.getHealth())
                         + " / " + (MacebotDataGetter.getMaxHealth() == -1 ? 20 : MacebotDataGetter.getMaxHealth()))),
-                new Data("Hunger", () -> Text.of((MacebotDataGetter.getHunger() == -1 ? "N/A" : MacebotDataGetter.getHunger()) + " / 20")),
-                new Data("Target", () -> MacebotDataGetter.getTarget() == null ? Text.of("None") : MacebotDataGetter.getTarget().getDisplayName())
+                new Data("Hunger", () -> Component.nullToEmpty((MacebotDataGetter.getHunger() == -1 ? "N/A" : MacebotDataGetter.getHunger()) + " / 20")),
+                new Data("Target", () -> MacebotDataGetter.getTarget() == null ? Component.nullToEmpty("None") : MacebotDataGetter.getTarget().getDisplayName())
         );
     }
 
     public List<Button> controlButtons() {
         return List.of(
-                newControlButton("Spawn", b -> MaceBotCommandSender.spawn(), () -> !ClientSideSettings.isMacebotOnline()),
-                newControlButton("Kick", b -> MaceBotCommandSender.kick(), ClientSideSettings::isMacebotOnline),
-                newControlButton("Play", b -> MaceBotCommandSender.play(), () -> ClientSideSettings.isMacebotOnline() && ClientSideSettings.getMode() == Mode.NPC),
-                newControlButton("Stop", b -> MaceBotCommandSender.stop(), () -> ClientSideSettings.isMacebotOnline() && ClientSideSettings.getMode() != Mode.NPC)
+                newControlButton("Spawn", b -> MaceBotCommandSender.spawn(), () -> !Settings.MACEBOT_ONLINE.getValue()),
+                newControlButton("Kick", b -> MaceBotCommandSender.kick(), () -> Settings.MACEBOT_ONLINE.getValue()),
+                newControlButton("Play", b -> MaceBotCommandSender.play(), () -> Settings.MACEBOT_ONLINE.getValue() && Settings.MODE.getValue() == Mode.NPC),
+                newControlButton("Stop", b -> MaceBotCommandSender.stop(), () -> Settings.MACEBOT_ONLINE.getValue() && Settings.MODE.getValue() != Mode.NPC)
         );
     }
 
@@ -396,7 +479,7 @@ public class ControllerBody extends Body {
                 .holdColor(theme.body_button_background() + 0xFF202020)
                 .foregroundColor(theme.body_button_foreground())
                 .activeSupplier(sup)
-                .baseLabel(Text.of(label))
+                .baseLabel(Component.nullToEmpty(label))
                 .onClick(onClick)
                 .build();
     }
@@ -404,11 +487,17 @@ public class ControllerBody extends Body {
     /** Quick-setting icon buttons for the entity panel - now wired to real textures. */
     public List<Button> entitySettingButtonList() {
         List<Button.Builder> builders = List.of(
-                Button.builder().texture(MaceBotTextures.QUICK_KITS).onClick(b -> {}),
-                Button.builder().toggleTexture(MaceBotTextures.QUICK_BUFF).toggleTexture(MaceBotTextures.QUICK_BUFF).toggled(ClientSideSettings.isMacebotBuffsEnabled()).onClick(b -> ClientSideSettingsSyncHelper.setAndSend(SettingsKey.MACEBOT_BUFFS_ENABLED,!ClientSideSettings.isMacebotBuffsEnabled())),
-                Button.builder().toggleTexture(MaceBotTextures.QUICK_REFILL).toggleTexture(MaceBotTextures.QUICK_REFILL_DISABLED).toggled(ClientSideSettings.isMacebotAutoRefillEnabled()).onClick(b -> ClientSideSettingsSyncHelper.setAndSend(SettingsKey.MACEBOT_AUTO_REFILL_ENABLED,!ClientSideSettings.isMacebotAutoRefillEnabled())),
-                Button.builder().texture(MaceBotTextures.QUICK_TELEPORT).onClick(b -> {}),
-                Button.builder().texture(MaceBotTextures.QUICK_SETTINGS).onClick(b -> {})
+                Button.builder().toggleTexture(MaceBotTextures.QUICK_BUFF).toggleTexture(MaceBotTextures.QUICK_BUFF_DISABLED).toggled(!Settings.MACEBOT_BUFFS.getValue()).onClick(b -> {
+                    parentScreen.showInfoStatus(Component.literal((Settings.MACEBOT_BUFFS.toggleAndGet() ? "Enabled " : "Disabled ") + Settings.MACEBOT_BUFFS.getDisplayName() + " for MaceBot"));
+                }),
+                Button.builder().toggleTexture(MaceBotTextures.QUICK_REFILL).toggleTexture(MaceBotTextures.QUICK_REFILL_DISABLED).toggled(!Settings.MACEBOT_AUTO_REFILL.getValue()).onClick(b -> {
+                    parentScreen.showInfoStatus(Component.literal((Settings.MACEBOT_AUTO_REFILL.toggleAndGet() ? "Enabled " : "Disabled ") + Settings.MACEBOT_AUTO_REFILL.getDisplayName() + " for MaceBot"));
+                }),
+                Button.builder().texture(MaceBotTextures.QUICK_TELEPORT).onClick(b -> {
+                    assert Minecraft.getInstance().player != null;
+                    MaceBotCommandSender.teleportM2E();
+                }).activeSupplier(() -> Settings.MACEBOT_ONLINE.getValue()),
+                Button.builder().texture(MaceBotTextures.QUICK_SETTINGS).onClick(b -> MaceBotClient.mainFrame.setBody(Bodies.SETTINGS).focusColumn(SettingsCategories.MACEBOT))
         );
         List<Button> list = new ArrayList<>();
         for(Button.Builder b: builders){
@@ -425,11 +514,17 @@ public class ControllerBody extends Body {
     /** Quick-setting icon buttons for the control panel - mirrors the entity panel's set. */
     public List<Button> controlSettingButtonList() {
         List<Button.Builder> builders = List.of(
-                Button.builder().texture(MaceBotTextures.QUICK_KITS).onClick(b -> {}),
-                Button.builder().toggleTexture(MaceBotTextures.QUICK_BUFF).toggleTexture(MaceBotTextures.QUICK_BUFF_DISABLED).toggled(ClientSideSettings.isPlayerBuffsEnabled()).onClick(b -> ClientSideSettingsSyncHelper.setAndSend(SettingsKey.PLAYER_BUFFS_ENABLED,!ClientSideSettings.isPlayerBuffsEnabled())),
-                Button.builder().toggleTexture(MaceBotTextures.QUICK_REFILL).toggleTexture(MaceBotTextures.QUICK_REFILL_DISABLED).toggled(ClientSideSettings.isPlayerAutoRefillEnabled()).onClick(b -> ClientSideSettingsSyncHelper.setAndSend(SettingsKey.PLAYER_AUTO_REFILL_ENABLED,!ClientSideSettings.isPlayerAutoRefillEnabled())),
-                Button.builder().texture(MaceBotTextures.QUICK_TELEPORT).onClick(b -> {}),
-                Button.builder().texture(MaceBotTextures.QUICK_SETTINGS).onClick(b -> {})
+                Button.builder().toggleTexture(MaceBotTextures.QUICK_BUFF).toggleTexture(MaceBotTextures.QUICK_BUFF_DISABLED).toggled(!Settings.PLAYER_BUFFS.getValue()).onClick(b -> {
+                    parentScreen.showInfoStatus(Component.literal((Settings.PLAYER_BUFFS.toggleAndGet() ? "Enabled " : "Disabled ") + Settings.PLAYER_BUFFS.getDisplayName() + " for Players"));
+                }),
+                Button.builder().toggleTexture(MaceBotTextures.QUICK_REFILL).toggleTexture(MaceBotTextures.QUICK_REFILL_DISABLED).toggled(!Settings.PLAYER_AUTO_REFILL.getValue()).onClick(b -> {
+                    parentScreen.showInfoStatus(Component.literal((Settings.PLAYER_AUTO_REFILL.toggleAndGet()? "Enabled " : "Disabled ") + Settings.PLAYER_AUTO_REFILL.getDisplayName() + " for Players"));
+                }),
+                Button.builder().texture(MaceBotTextures.QUICK_TELEPORT).onClick(b -> {
+                    assert Minecraft.getInstance().player != null;
+                    MaceBotCommandSender.teleportE2M();
+                }).activeSupplier(() -> Settings.MACEBOT_ONLINE.getValue()),
+                Button.builder().texture(MaceBotTextures.QUICK_SETTINGS).onClick(b -> MaceBotClient.mainFrame.setBody(Bodies.SETTINGS).focusColumn(SettingsCategories.PLAYER))
         );
         List<Button> list = new ArrayList<>();
         for(Button.Builder b: builders){
@@ -445,36 +540,59 @@ public class ControllerBody extends Body {
     }
 
     public List<String> settingButtonLabels() {
-        return List.of("Kits", "Buff", "Refill", "Teleport", "Settings");
+        return List.of("Buff", "Refill", "Teleport", "SettingManager");
     }
 
     /** Labels for the control panel's quick-setting row (currently mirrors the entity panel's). */
     public List<String> controlSettingButtonLabels() {
-        return List.of("Kits", "Buff", "Refill", "Teleport", "Settings");
+        return List.of("Buff", "Refill", "Teleport", "SettingManager");
     }
 
     ArmorStandEntity armorStand;
 
-    public ArmorStandEntity getArmorStandEntity() {
+    public ArmorStand getArmorStandEntity() {
         if (armorStand == null) {
-            armorStand = new ArmorStandEntity(EntityType.ARMOR_STAND, parentScreen.getClient().world);
+            armorStand = new ArmorStandEntity(
+                    //? if <26.2 {
+                    EntityType.ARMOR_STAND,
+                    //?} else
+                    //EntityTypes.ARMOR_STAND,
+                    Objects.requireNonNull(parentScreen.getClient().level));
         }
         return armorStand;
     }
 
     public static class Data {
         public String key;
-        public Supplier<Text> value;
+        public Supplier<Component> value;
 
-        public Data(String key, Supplier<Text> value) {
+        public Data(String key, Supplier<Component> value) {
             this.key = key;
             this.value = value;
         }
     }
 
     protected void openNameEditor() {
+        setScreen(new StyledTextEditor(parent, Component.nullToEmpty("Custom Name"), MacebotDataGetter.getDisplayName().getString(), ChangeNameC2SPacket::send));
     }
 
-    protected void openSkinEditor() {
+    private void setScreen(Screen screen){
+        //? if <26.2 {
+        Minecraft.getInstance().setScreen(screen);
+        //?} else
+        //Minecraft.getInstance().setScreenAndShow(screen);
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return true;
+    }
+
+    private static class ArmorStandEntity extends ArmorStand{
+        public ArmorStandEntity(EntityType<? extends ArmorStand> type, Level level) {
+            super(type, level);
+            //? if >=26.2
+            //this.setId(-1);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package net.katch0420.macebot.main.kits.main;
 
-import net.minecraft.util.Identifier;
+
+import net.minecraft.resources.Identifier;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +11,7 @@ public class Kit {
     private String displayName;
     private Identifier iconId; // optional for GUI icon
     private final boolean custom;
-    private Map<Integer, KitStack> items = new HashMap<>();
+    public Map<Integer, KitStack> items = new HashMap<>();
 
     public void setDisplayName(String name) { this.displayName = name; }
     public void setIconId(Identifier iconId) { this.iconId = iconId; }
@@ -36,6 +37,10 @@ public class Kit {
         return kit;
     }
 
+    public void copyContent(Kit kit){
+        this.items = kit.items;
+    }
+
     public void clear(){
         items.clear();
     }
@@ -47,7 +52,6 @@ public class Kit {
     public boolean isCustom() {
         return custom;
     }
-
     public void setIconItem(Identifier iconItem) {
         this.iconId = iconItem;
     }

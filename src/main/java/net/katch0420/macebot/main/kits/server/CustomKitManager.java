@@ -7,14 +7,10 @@ import net.katch0420.macebot.main.MaceBot;
 import net.katch0420.macebot.main.kits.main.ItemData;
 import net.katch0420.macebot.main.kits.main.Kit;
 import net.katch0420.macebot.main.kits.main.KitStack;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.*;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 import java.io.*;
 import java.nio.file.*;
@@ -26,7 +22,7 @@ public class CustomKitManager {
             .getConfigDir().resolve("macebot").resolve("kits");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    public static DynamicRegistryManager registryManager;
+    public static RegistryAccess.Frozen registryManager;
 
     public static void init() {
         try {
@@ -61,22 +57,15 @@ public class CustomKitManager {
 
     private static JsonObject serializeKitStack(KitStack kitStack) {
         try {
-            registryManager = MaceBot.server.getRegistryManager();
+            registryManager = MaceBot.server.registryAccess();
             if (registryManager == null) {
                 System.err.println("[MaceBot] registryManager not set — cannot serialize");
                 return null;
             }
 
-            ItemData data = kitStack.itemData;
+            ItemStack stack = kitStack.toStack();
 
-            // Build a temporary ItemStack so we can use ItemStack.CODEC
-            // This avoids needing a PlayerEntity — registryManager is enough
-            Item item = Registries.ITEM.get(data.id);
-            ItemStack stack = new ItemStack(item, kitStack.count);
-            stack.applyComponentsFrom(data.components);
-
-            // Encode the full stack with ItemStack.CODEC — handles everything
-            RegistryOps<JsonElement> ops = RegistryOps.of(JsonOps.INSTANCE, registryManager);
+            RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, registryManager);
             JsonElement stackJson = ItemStack.CODEC
                     .encodeStart(ops, stack)
                     .resultOrPartial(err -> System.err.println("[MaceBot] encode error: " + err))
@@ -120,7 +109,7 @@ public class CustomKitManager {
             String displayName = root.get("displayName").getAsString();
             String iconItem    = root.has("iconItem") ? root.get("iconItem").getAsString() : "";
 
-            Kit kit = new Kit(id, displayName, Identifier.of(iconItem), true);
+            Kit kit = new Kit(id, displayName, Identifier.parse(iconItem), true);
 
             if (root.has("items")) {
                 root.getAsJsonObject("items").entrySet().forEach(entry -> {
@@ -144,14 +133,14 @@ public class CustomKitManager {
         try {
 
             int slot = obj.get("slot").getAsInt();
-            registryManager = MaceBot.server.getRegistryManager();
+            registryManager = MaceBot.server.registryAccess();
 
             if (registryManager == null) {
                 System.err.println("[MaceBot] registryManager not set — cannot deserialize");
                 return null;
             }
 
-            RegistryOps<JsonElement> ops = RegistryOps.of(JsonOps.INSTANCE, registryManager);
+            RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, registryManager);
 
             // New format — full ItemStack via codec
             if (obj.has("stack")) {

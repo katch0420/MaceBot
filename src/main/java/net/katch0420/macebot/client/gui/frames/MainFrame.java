@@ -10,19 +10,27 @@ import net.katch0420.macebot.client.gui.themes.Themes;
 import net.katch0420.macebot.client.gui.widgets.buttons.Button;
 import net.katch0420.macebot.client.gui.widgets.core.BaseWidget;
 import net.katch0420.macebot.client.inputs.KeyPressHandler;
+import net.katch0420.macebot.client.inputs.MaceBotKeyBinds;
 import net.katch0420.macebot.client.utils.RenderUtils;
 import net.katch0420.macebot.main.kits.main.Kit;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+//? if <26.1.2 {
+import net.minecraft.client.gui.GuiGraphics;
+//?} else
+//import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
+//? if >=1.21.9 {
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+//?}
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.UnknownNullability;
 
-import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -32,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Root screen of the MaceBot GUI: a header bar, a left icon sidebar, a footer,
  * and a swappable body panel in the middle.
- *
+ * <p>
  * Layout is fully responsive: header/sidebar/footer thickness and all
  * internal spacing scale smoothly with the real available screen size
  * (which already reflects the player's GUI scale setting), instead of
@@ -57,14 +65,14 @@ public class MainFrame extends Screen {
     protected final List<Body> history = new ArrayList<>();
 
     long statusStartMillis;
-    Text statusText;
+    Component statusText;
 
     private final List<SidebarEntry> sidebarEntries = new ArrayList<>();
 
     public Theme theme = Themes.CURRENT;
 
     public MainFrame() {
-        super(Text.of("Macebot"));
+        super(Component.nullToEmpty("Macebot"));
     }
 
     @Override
@@ -92,15 +100,15 @@ public class MainFrame extends Screen {
         currentBody.setPosition(SIDEBAR_WIDTH, HEADER_HEIGHT);
         currentBody.setSize(width - SIDEBAR_WIDTH, height - HEADER_HEIGHT - FOOTER_HEIGHT);
         currentBody.clearAndInit();
-        addSelectableChild(currentBody);
+        addWidget(currentBody);
     }
 
     private void initSideBar() {
         sidebarEntries.clear();
-        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_PANEL, Text.of("Controller"), Bodies.CONTROLLER));
-        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_KITS, Text.of("Kits"), Bodies.KITS));
-        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_SETTINGS, Text.of("Settings"), Bodies.SETTINGS));
-        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_INFO, Text.of("About"), Bodies.ABOUT));
+        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_PANEL, Component.nullToEmpty("Controller"), Bodies.CONTROLLER));
+        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_KITS, Component.nullToEmpty("Kits"), Bodies.KITS));
+        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_SETTINGS, Component.nullToEmpty("SettingManager"), Bodies.SETTINGS));
+        sidebarEntries.add(new SidebarEntry(MaceBotTextures.SIDE_PANEL_ICONS_INFO, Component.nullToEmpty("About"), Bodies.ABOUT));
 
         int iconSize = ResponsiveLayout.scaledMin(BASE_ICON_SIZE, uiScale, 16);
         int gap = ResponsiveLayout.scaledMin(BASE_ICON_GAP, uiScale, 4);
@@ -120,44 +128,46 @@ public class MainFrame extends Screen {
                     .holdColor(theme.accent() & 0x77FFFFFF)
                     .onClick(b -> setBody(entry.body))
                     .build();
-            addDrawableChild(entry.button);
+            addRenderableWidget(entry.button);
         }
 
         int exitSize;
         exitSize = iconSize;
-        addDrawableChild(Button.builder()
+        addRenderableWidget(Button.builder()
                 .texture(MaceBotTextures.SIDE_PANEL_ICONS_EXIT)
                 .size(exitSize)
                 .backgroundColor(0)
                 .foregroundColor(theme.screen_foreground())
                 .hoverColor(theme.danger() & 0x55FFFFFF)
                 .holdColor(theme.danger() & 0x77FFFFFF)
-                .onClick(b -> goBack())
+                .onClick(b -> goBack(
+                        //? if >=1.21.9
+                        b.ctrl
+                ))
                 .position(sX, height - (exitSize + FOOTER_HEIGHT + gap))
                 .build());
     }
-
-    @Override
-    public void renderBackground(DrawContext c, int mx, int my, float d) {
-        // Custom background is painted in render(); the vanilla dirt/blur backdrop is skipped.
+    //? if >1.21.11 {
+    /*@Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
     }
 
     @Override
-    public void render(DrawContext c, int mx, int my, float d) {
+    public void extractRenderState(GuiGraphicsExtractor c, int mx, int my, float d) {
         if(prevH != height || prevW != width) { //Ensures proper scaling.
-            clearAndInit();
+            repositionElements();
             return;
         }
         c.fill(0, 0, width, height, theme.screen_background());
-        currentBody.render(c,mx,my,d);
-        renderSideBar(c, mx, my);
-        renderHeader(c, mx, my);
-        renderFooter(c, mx, my);
-        super.render(c, mx, my, d);
-        renderStatusMessage(c,mx,my);
+        currentBody.extractRenderState(c,mx,my,d);
+        extractSideBar(c);
+        extractHeader(c, mx, my);
+        extractFooter(c);
+        super.extractRenderState(c, mx, my, d);
+        extractStatusMessage(c);
     }
 
-    private void renderStatusMessage(DrawContext c, int mx, int my) {
+    private void extractStatusMessage(GuiGraphicsExtractor c) {
         if (statusText == null) return;
 
         long now = System.currentTimeMillis();
@@ -179,35 +189,33 @@ public class MainFrame extends Screen {
         }
 
         // Positioning
-        int sy = height - FOOTER_HEIGHT - 2 * textRenderer.fontHeight - 10;
-        int sWidth = textRenderer.getWidth(statusText) + 10;
+        int sy = height - FOOTER_HEIGHT - 2 * font.lineHeight - 10;
+        int sWidth = font.width(statusText) + 10;
         int sx = (width - sWidth) / 2;
 
         // Colors with alpha applied
         int bColor = theme.body_label() & 0x00FFFFFF | (alpha << 24);
         int bgColor = theme.body_background() & 0x00FFFFFF | (alpha << 24);
-        int tColor = Objects.requireNonNull(statusText.getStyle().getColor()).getRgb() & 0x00FFFFFF | (alpha << 24);
+        int tColor = Objects.requireNonNull(statusText.getStyle().getColor()).getValue() & 0x00FFFFFF | (alpha << 24);
 
         // Draw background box
-        c.fill(sx, sy, sx + sWidth, sy + textRenderer.fontHeight + 6, bgColor);
+        c.fill(sx, sy, sx + sWidth, sy + font.lineHeight + 6, bgColor);
 
         // Draw border
-        RenderUtils.drawBorder(c, sx, sy, sWidth, textRenderer.fontHeight + 6, bColor);
+        RenderUtils.drawBorder(c, sx, sy, sWidth, font.lineHeight + 6, bColor);
 
         // Draw text
-        c.drawTextWithShadow(textRenderer, statusText, sx + 5, sy + 3, tColor);
+        c.text(font, statusText, sx + 5, sy + 3, tColor);
     }
 
-
-    private void renderFooter(DrawContext c, int mx, int my) {
+    private void extractFooter(GuiGraphicsExtractor c) {
         c.fill(0, height - FOOTER_HEIGHT, width, height, theme.footer_background());
-        c.drawHorizontalLine(0, width, height - FOOTER_HEIGHT, theme.panel_separator());
+        c.horizontalLine(0, width, height - FOOTER_HEIGHT, theme.panel_separator());
 
         // Subtle status line - mirrors a "professional app" footer (version / status), themed.
         String status = "MaceBot";
-        int textY = height - FOOTER_HEIGHT + (FOOTER_HEIGHT - textRenderer.fontHeight) / 2;
-        c.drawTextWithShadow(textRenderer, Text.of(status),  8, textY, theme.footer_foreground());
-
+        int textY = height - FOOTER_HEIGHT + (FOOTER_HEIGHT - font.lineHeight) / 2;
+        c.text(font, status,  8, textY, theme.footer_foreground());
         // Accent-colored connection/status dot - purely cosmetic placeholder for a real status hook.
         int dotSize = Math.max(4, FOOTER_HEIGHT / 4);
         int dotX = width - dotSize - 10;
@@ -215,9 +223,122 @@ public class MainFrame extends Screen {
         c.fill(dotX, dotY, dotX + dotSize, dotY + dotSize, theme.success());
     }
 
-    private void renderSideBar(DrawContext c, int mx, int my) {
+    private void extractHeader(GuiGraphicsExtractor c, int mx, int my) {c.fill(0, 0, width, HEADER_HEIGHT, theme.header_background());
+        c.horizontalLine(0, width, HEADER_HEIGHT, theme.panel_separator());
+        c.fill(0, HEADER_HEIGHT - 2, width, HEADER_HEIGHT, theme.accent() & 0x40FFFFFF);
+
+        Component t = currentBody == null ? Component.literal("Macebot") : currentBody.getLabel();
+        c.text(font, t, SIDEBAR_WIDTH + 10, (HEADER_HEIGHT - font.lineHeight) / 2, theme.header_foreground());
+        // Breadcrumb-style back affordance when history has depth.
+        if (history.size() > 1) {
+            String back = "< Back";
+            int bw = font.width(back);
+            int bx = width - bw - 12;
+            int by = (HEADER_HEIGHT - font.lineHeight) / 2;
+            boolean hovered = mx >= bx - 4 && mx <= bx + bw + 4 && my >= 0 && my <= HEADER_HEIGHT;
+            c.text(font, back, bx, by, hovered ? theme.accent_hover() : theme.accent());
+        }
+    }
+
+    private void extractSideBar(GuiGraphicsExtractor c) {c.fill(0, 0, SIDEBAR_WIDTH, height, theme.sidebar_background());
+        c.verticalLine(SIDEBAR_WIDTH, 0, height, theme.panel_separator());
+
+        // Highlight the icon for the body currently being shown, so the sidebar
+        // reads like a proper navigation rail instead of a row of inert icons.
+        for (SidebarEntry entry : sidebarEntries) {
+            if (entry.body == currentBody && entry.button != null) {
+                int bx = entry.button.getX();
+                int by = entry.button.getY();
+                int bw = entry.button.getWidth();
+                int bh = entry.button.getHeight();
+                c.fill(0, by - 2, 3, by + bh + 2, theme.accent());
+                c.fill(bx - 2, by - 2, bx + bw + 2, by + bh + 2, theme.accent() & 0x33FFFFFF);
+            }
+        }
+    }
+    *///?}
+
+    //? if <=1.21.11 {
+    @Override
+    public void renderBackground(GuiGraphics c, int mx, int my, float d) {
+        // Custom background is painted in render(); the vanilla dirt/blur backdrop is skipped.
+    }
+
+    @Override
+    public void render(GuiGraphics c, int mx, int my, float d) {
+        if(prevH != height || prevW != width) { //Ensures proper scaling.
+            repositionElements();
+            return;
+        }
+        c.fill(0, 0, width, height, theme.screen_background());
+        currentBody.render(c,mx,my,d);
+        renderSideBar(c);
+        renderHeader(c, mx, my);
+        renderFooter(c);
+        super.render(c, mx, my, d);
+        renderStatusMessage(c);
+    }
+
+    private void renderStatusMessage(GuiGraphics c) {
+        if (statusText == null) return;
+
+        long now = System.currentTimeMillis();
+        long elapsed = now - statusStartMillis; // when you set the message, store statusStartMillis
+        long duration = 4000; // total 4 seconds
+        long fadeStart = 3000; // start fading after 3 seconds
+        long fadeDuration = 1000; // fade lasts 1 second
+
+        if (elapsed >= duration) {
+            statusText = null; // expired
+            return;
+        }
+
+        // Compute alpha
+        int alpha = 255;
+        if (elapsed > fadeStart) {
+            float progress = (float)(elapsed - fadeStart) / fadeDuration;
+            alpha = (int)(255 * (1.0f - progress));
+        }
+
+        // Positioning
+        int sy = height - FOOTER_HEIGHT - 2 * font.lineHeight - 10;
+        int sWidth = font.width(statusText) + 10;
+        int sx = (width - sWidth) / 2;
+
+        // Colors with alpha applied
+        int bColor = theme.body_label() & 0x00FFFFFF | (alpha << 24);
+        int bgColor = theme.body_background() & 0x00FFFFFF | (alpha << 24);
+        int tColor = Objects.requireNonNull(statusText.getStyle().getColor()).getValue() & 0x00FFFFFF | (alpha << 24);
+
+        // Draw background box
+        c.fill(sx, sy, sx + sWidth, sy + font.lineHeight + 6, bgColor);
+
+        // Draw border
+        RenderUtils.drawBorder(c, sx, sy, sWidth, font.lineHeight + 6, bColor);
+
+        // Draw text
+        c.drawString(font, statusText, sx + 5, sy + 3, tColor);
+    }
+
+
+    private void renderFooter(@UnknownNullability GuiGraphics c) {
+        c.fill(0, height - FOOTER_HEIGHT, width, height, theme.footer_background());
+        c.hLine(0, width, height - FOOTER_HEIGHT, theme.panel_separator());
+
+        // Subtle status line - mirrors a "professional app" footer (version / status), themed.
+        String status = "MaceBot";
+        int textY = height - FOOTER_HEIGHT + (FOOTER_HEIGHT - font.lineHeight) / 2;
+        c.drawString(font, status,  8, textY, theme.footer_foreground());
+        // Accent-colored connection/status dot - purely cosmetic placeholder for a real status hook.
+        int dotSize = Math.max(4, FOOTER_HEIGHT / 4);
+        int dotX = width - dotSize - 10;
+        int dotY = height - FOOTER_HEIGHT / 2 - dotSize / 2;
+        c.fill(dotX, dotY, dotX + dotSize, dotY + dotSize, theme.success());
+    }
+
+    private void renderSideBar(@UnknownNullability GuiGraphics c) {
         c.fill(0, 0, SIDEBAR_WIDTH, height, theme.sidebar_background());
-        c.drawVerticalLine(SIDEBAR_WIDTH, 0, height, theme.panel_separator());
+        c.vLine(SIDEBAR_WIDTH, 0, height, theme.panel_separator());
 
         // Highlight the icon for the body currently being shown, so the sidebar
         // reads like a proper navigation rail instead of a row of inert icons.
@@ -233,47 +354,62 @@ public class MainFrame extends Screen {
         }
     }
 
-    private void renderHeader(DrawContext c, int mx, int my) {
+    private void renderHeader(@UnknownNullability GuiGraphics c, int mx, int my) {
         c.fill(0, 0, width, HEADER_HEIGHT, theme.header_background());
-        c.drawHorizontalLine(0, width, HEADER_HEIGHT, theme.panel_separator());
+        c.hLine(0, width, HEADER_HEIGHT, theme.panel_separator());
         c.fill(0, HEADER_HEIGHT - 2, width, HEADER_HEIGHT, theme.accent() & 0x40FFFFFF);
 
-        Text t = currentBody == null ? Text.of("Macebot") : currentBody.getLabel();
-        c.drawTextWithShadow(textRenderer, t, SIDEBAR_WIDTH + 10, (HEADER_HEIGHT - textRenderer.fontHeight) / 2, theme.header_foreground());
-
+        Component t = currentBody == null ? Component.literal("Macebot") : currentBody.getLabel();
+        c.drawString(font, t, SIDEBAR_WIDTH + 10, (HEADER_HEIGHT - font.lineHeight) / 2, theme.header_foreground());
         // Breadcrumb-style back affordance when history has depth.
         if (history.size() > 1) {
             String back = "< Back";
-            int bw = textRenderer.getWidth(back);
+            int bw = font.width(back);
             int bx = width - bw - 12;
-            int by = (HEADER_HEIGHT - textRenderer.fontHeight) / 2;
+            int by = (HEADER_HEIGHT - font.lineHeight) / 2;
             boolean hovered = mx >= bx - 4 && mx <= bx + bw + 4 && my >= 0 && my <= HEADER_HEIGHT;
-            c.drawTextWithShadow(textRenderer, Text.of(back), bx, by, hovered ? theme.accent_hover() : theme.accent());
+            c.drawString(font, back, bx, by, hovered ? theme.accent_hover() : theme.accent());
         }
     }
-
+    //?}
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && mouseY <= HEADER_HEIGHT && history.size() > 1) {
+    public boolean mouseClicked(
+            //? if >=1.21.9 {
+            MouseButtonEvent c, boolean bl
+            //?} else
+            //double mx, double my, int b
+    ) {
+        //? if >=1.21.9
+        double mx = c.x(), my = c.y(); int b = c.button();
+        if (b == 0 && my <= HEADER_HEIGHT && history.size() > 1) {
             String back = "< Back";
-            int bw = textRenderer.getWidth(back);
+            int bw = font.width(back);
             int bx = width - bw - 12;
-            if (mouseX >= bx - 4 && mouseX <= bx + bw + 4) {
-                goBack();
+            if (mx >= bx - 4 && mx <= bx + bw + 4) {
+                goBack(
+                        //? if >=1.21.9
+                        c.hasControlDown()
+                );
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(
+                //? if >=1.21.9 {
+                c,bl
+                //?} else
+                //mx, my, b
+        );
     }
 
     @Override
-    protected void clearAndInit() {
+    protected void repositionElements() {
         history.clear();
-        super.clearAndInit();
+        super.repositionElements();
     }
 
-    private void setBody(Body body) {
-        if (currentBody == body || body == null) return;
+    @SuppressWarnings("unchecked")
+    public <E extends Body> E setBody(E body) {
+        if (currentBody == body || body == null) return (E) currentBody;
 
         int existingIndex = history.indexOf(body);
         if (existingIndex != -1) {
@@ -283,30 +419,60 @@ public class MainFrame extends Screen {
         }
         if(currentBody != null){
             currentBody.removed();
-            remove(currentBody);
+            removeWidget(currentBody);
         }
         currentBody = body.setParentScreen(this);
         currentBody.setPosition(SIDEBAR_WIDTH, HEADER_HEIGHT);
         currentBody.setSize(width - SIDEBAR_WIDTH, height - HEADER_HEIGHT - FOOTER_HEIGHT);
         currentBody.clearAndInit();
         currentBody.parent = this;
-        addSelectableChild(currentBody);
+        addRenderableWidget(currentBody);
+        return (E) currentBody;
     }
 
     @Override
-    public boolean keyPressed(int k, int s, int m) {
-        if (KeyPressHandler.isCloseKey(k)) return goBack();
-        return currentBody != null && currentBody.keyPressed(k, s, m);
+    public boolean keyPressed(
+            //? if >=1.21.9 {
+            KeyEvent keyEvent
+            //?} else
+            //int keyCode, int scanCode, int modifiers
+    ) {
+        //? if >=1.21.9
+        int keyCode = keyEvent.key(), scanCode = keyEvent.scancode(), modifiers = keyEvent.modifiers();
+        if(KeyPressHandler.canKeyBindClose(keyCode, scanCode, modifiers)) {
+            onClose();
+            return true;
+        }
+        if(getCurrentBody().isPrimary()){
+            MaceBotKeyBinds.processKeybinds();
+        }
+        if(KeyPressHandler.isCloseKey(keyCode, scanCode, modifiers)) return goBack(
+                //? >=1.21.9
+                keyEvent.hasControlDown()
+        );
+        return currentBody != null && super.keyPressed(
+                //? if >=1.21.9 {
+                keyEvent
+                //?} else
+                //keyCode, scanCode, modifiers
+        );
     }
 
     @Override
     public boolean shouldCloseOnEsc() {
         return false;
     }
-
-    private boolean goBack() {
-        if (Screen.hasControlDown() || history.size() <= 1) {
-            close();
+    //? if <1.21.9 {
+    /*private boolean goBack(){
+        return goBack(Screen.hasControlDown());
+    }
+    *///?}
+    private boolean goBack(boolean ctrl) {
+        if(currentBody instanceof KitEditorBody){
+            setBody(Bodies.KITS);
+        }
+        if (ctrl || history.size() <= 1) {
+            onClose();
         } else {
             history.removeLast();
             setBody(history.getLast());
@@ -314,19 +480,9 @@ public class MainFrame extends Screen {
         return true;
     }
 
-    /**
-     * Returns the body's available drawing area at the CURRENT resolution/scale.
-     * Kept for API compatibility with bodies that may still reference it, but
-     * {@link Body} now reads its own
-     * width/height directly instead of going through fixed scale buckets.
-     */
-    public Dimension getBodyDimensionInScale(int scale) {
-        return new Dimension(width - SIDEBAR_WIDTH, height - HEADER_HEIGHT - FOOTER_HEIGHT);
-    }
-
-    public @NotNull MinecraftClient getClient() {
-        assert client != null;
-        return client;
+    public @NotNull Minecraft getClient() {
+        assert minecraft != null;
+        return minecraft;
     }
 
     public void navigateTo(Body body) {
@@ -334,12 +490,12 @@ public class MainFrame extends Screen {
     }
 
     public void applyTheme() {
-        clearAndInit();
+        repositionElements();
     }
 
     @Override
     public void tick() {
-        for(Element e: children()){
+        for(GuiEventListener e: children()){
             if(e instanceof BaseWidget<?> b) b.tick();
         }
     }
@@ -349,26 +505,37 @@ public class MainFrame extends Screen {
         if(currentBody != null)currentBody.removed();
     }
 
-    public void showWarningStatus(MutableText status) {
+    public void showWarningStatus(MutableComponent status) {
         statusStartMillis = System.currentTimeMillis();
-        statusText = status.formatted(Formatting.YELLOW);
+        statusText = status.withStyle(ChatFormatting.YELLOW);
     }
 
-    public void navigateBack() {
-        goBack();
-    }
-
-    public void openKitEdior(Kit kit) {
+    public void openKitEditor(Kit kit) {
         setBody(new KitEditorBody(kit));
+    }
+
+    public void showInfoStatus(MutableComponent status) {
+        statusStartMillis = System.currentTimeMillis();
+        statusText = status.withStyle(ChatFormatting.GREEN);
+    }
+
+    public Screen setInitialBody(Body body) {
+        this.history.clear();
+        this.setBody(body);
+        return this;
+    }
+
+    public Body getCurrentBody(){
+        return currentBody;
     }
 
     private static final class SidebarEntry {
         final Identifier texture;
-        final Text label;
+        final Component label;
         final Body body;
         Button button;
 
-        SidebarEntry(Identifier texture, Text label, Body body) {
+        SidebarEntry(Identifier texture, Component label, Body body) {
             this.texture = texture;
             this.label = label;
             this.body = body;

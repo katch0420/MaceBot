@@ -1,14 +1,14 @@
 package net.katch0420.macebot.main.messenger;
 
 import net.katch0420.macebot.main.MaceBot;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.slf4j.Marker;
 
 import static net.katch0420.macebot.main.MaceBot.LOGGER;
 
 public class Logger {
 
-    public static void warn(Text msg) {
+    public static void warn(Component msg) {
         warn(msg.toString());
     }
 
@@ -16,7 +16,7 @@ public class Logger {
         LOGGER.warn(msg);
     }
 
-    public static void error(Text msg) {
+    public static void error(Component msg) {
         error(msg.toString());
     }
 
@@ -24,7 +24,7 @@ public class Logger {
         LOGGER.error(msg);
     }
 
-    public static void info(Text msg) {
+    public static void info(Component msg) {
         info(msg.toString());
     }
 
